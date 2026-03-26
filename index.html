@@ -99,11 +99,11 @@
     .header-inner {
       max-width: 1100px; margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between;
-      height: 64px;
+      height: 80px;
     }
     .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
     .brand-logo {
-      height: 52px;
+      height: 76px;
       width: auto;
       display: block;
       /* Fallback se l'immagine non carica: mostra il testo brand */
@@ -314,14 +314,13 @@
 
     /* ── CHARTS ── */
     .charts-grid {
-      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      display: grid; grid-template-columns: 1fr 1fr;
       gap: 1.5rem; margin-bottom: 3.5rem;
       width: 100%;
     }
-    @media (max-width: 900px) {
-      .charts-grid { grid-template-columns: 1fr 1fr; }
-      /* Il terzo grafico da solo su riga: occupa entrambe le colonne */
-      .charts-grid > .chart-card:last-child { grid-column: 1 / -1; }
+    /* Il terzo grafico occupa sempre l'intera riga */
+    .charts-grid > .chart-card:nth-child(3) {
+      grid-column: 1 / -1;
     }
     @media (max-width: 600px) { .charts-grid { grid-template-columns: 1fr; } }
     .chart-card { background: var(--bg-card); border: 1px solid var(--bg-border); padding: 1.5rem; }
@@ -562,7 +561,7 @@
         <div class="chart-title">Downtime (eventi)</div>
         <div class="chart-stat" id="downtime-events-display">—</div>
         <div class="chart-stat-label">ultimi 30 giorni</div>
-        <div style="margin-top:1rem" class="chart-wrap-tall"><canvas id="chartDowntime"></canvas></div>
+        <div style="margin-top:1rem" class="chart-wrap"><canvas id="chartDowntime"></canvas></div>
       </div>
     </div>
   </section>
@@ -782,13 +781,19 @@ async function loadData() {
 // ─────────────────────────────────────────────────────
 //  FETCH INCIDENTS FROM GITHUB ISSUES
 // ─────────────────────────────────────────────────────
+let _incidentsRateLimited = false; // evita tentativi ripetuti se rate-limited
+
 async function fetchIncidents() {
+  if (_incidentsRateLimited) return [];
   try {
-    // Legge Issues aperte + chiuse recenti con label 'incident' o 'maintenance'
     const r = await fetch(
       `${API}/issues?state=all&labels=incident&per_page=20&sort=created&direction=desc`,
       { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' }
     );
+    if (r.status === 403 || r.status === 429) {
+      _incidentsRateLimited = true; // smetti di riprovare fino a ricaricamento pagina
+      return [];
+    }
     if (!r.ok) return [];
     const issues = await r.json();
 
@@ -1145,10 +1150,11 @@ function renderCharts(services, incidents) {
       ticks: {
         color: 'rgba(232,226,217,0.3)',
         font: { size: 9 },
-        // Mostra: primo giorno, ogni 5° giorno, e sempre l'ultimo (oggi)
-        maxTicksLimit: 30,
+        maxRotation: 0,
+        minRotation: 0,
         autoSkip: false,
-        callback: (_, i) => (i === 0 || i === labels30.length - 1 || i % 5 === 4) ? labels30[i] : '',
+        // Mostra: primo giorno, ogni 10° giorno, e l'ultimo (oggi)
+        callback: (_, i) => (i === 0 || i === 9 || i === 19 || i === labels30.length - 1) ? labels30[i] : '',
       },
       grid: { color: DIM }
     },
