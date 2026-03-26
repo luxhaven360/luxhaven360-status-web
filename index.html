@@ -103,7 +103,7 @@
     }
     .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
     .brand-logo {
-      height: 36px;
+      height: 52px;
       width: auto;
       display: block;
       /* Fallback se l'immagine non carica: mostra il testo brand */
@@ -316,8 +316,13 @@
     .charts-grid {
       display: grid; grid-template-columns: 1fr 1fr 1fr;
       gap: 1.5rem; margin-bottom: 3.5rem;
+      width: 100%;
     }
-    @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 900px) {
+      .charts-grid { grid-template-columns: 1fr 1fr; }
+      /* Il terzo grafico da solo su riga: occupa entrambe le colonne */
+      .charts-grid > .chart-card:last-child { grid-column: 1 / -1; }
+    }
     @media (max-width: 600px) { .charts-grid { grid-template-columns: 1fr; } }
     .chart-card { background: var(--bg-card); border: 1px solid var(--bg-border); padding: 1.5rem; }
     .chart-title { font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 1.25rem; }
@@ -830,25 +835,47 @@ async function synthesizeFromGitHub() {
     { name: 'ipapi.co Geolocalizzazione',url: 'https://ipapi.co/json/',                                       group: 'deps', slug: 'ipapi-co-geolocalizzazione' },
   ]};
 
+  // ── CONTROLLO UNICO: il repo Upptime è già configurato? ──
+  // Tentiamo di caricare .upptimerc.yml UNA sola volta.
+  // Se restituisce 404, il repo non è ancora pronto → restituiamo tutti i servizi come
+  // "unknown" SENZA ulteriori fetch, evitando la cascata di 14+ errori 404 in console.
+  let repoReady = false;
   try {
-    const txt = await fetch(`${BASE}/.upptimerc.yml`).then(r => r.text());
-    const sites = [];
-    let inSites = false, current = {};
-    for (const line of txt.split('\n')) {
-      if (line.trim() === 'sites:') { inSites = true; continue; }
-      if (inSites && line.match(/^  - name:/)) {
-        if (current.name) sites.push(current);
-        current = { name: line.replace(/.*name:\s*/, '').trim().replace(/['"]/g,'') };
+    const rcRes = await fetch(`${BASE}/.upptimerc.yml`, { cache: 'no-store' });
+    if (rcRes.ok) {
+      repoReady = true;
+      // Sovrascrivi config con i dati reali del .yml se presenti
+      const txt = await rcRes.text();
+      const sites = [];
+      let inSites = false, current = {};
+      for (const line of txt.split('\n')) {
+        if (line.trim() === 'sites:') { inSites = true; continue; }
+        if (inSites && line.match(/^  - name:/)) {
+          if (current.name) sites.push(current);
+          current = { name: line.replace(/.*name:\s*/, '').trim().replace(/['"]/g,'') };
+        }
+        if (inSites && line.match(/url:/))
+          current.url = line.replace(/.*url:\s*/, '').trim().replace(/['"]/g,'');
+        if (inSites && !line.startsWith('  ') && !line.startsWith('#') && line.trim())
+          inSites = false;
       }
-      if (inSites && line.match(/url:/))
-        current.url = line.replace(/.*url:\s*/, '').trim().replace(/['"]/g,'');
-      if (inSites && !line.startsWith('  ') && !line.startsWith('#') && line.trim())
-        inSites = false;
+      if (current.name) sites.push(current);
+      if (sites.length) config.sites = sites;
     }
-    if (current.name) sites.push(current);
-    if (sites.length) config.sites = sites;
   } catch {}
 
+  // Se il repo non è ancora pronto (404 o errore di rete), restituiamo subito
+  // tutti i servizi come "unknown" — niente fetch aggiuntivi, niente 404 in console.
+  if (!repoReady) {
+    return {
+      services: config.sites.map(site => ({
+        name: site.name, url: site.url, group: site.group || null,
+        status: 'unknown', uptime: '—', response: '—', history: [],
+      }))
+    };
+  }
+
+  // ── Il repo è pronto: recupera i file history/*.yml per ogni servizio ──
   const serviceData = await Promise.all(config.sites.map(async site => {
     // Upptime genera lo slug dal name nel .yml: lowercase, spaces→hyphens
     // Se il name contiene numeri o caratteri speciali, vengono mantenuti (es. 360)
@@ -858,7 +885,7 @@ async function synthesizeFromGitHub() {
       .replace(/[^a-z0-9-]/g, '');
     let status = 'unknown', uptime = '—', response = '—', history = [];
     try {
-      const txt = await fetch(`${BASE}/history/${slug}.yml`).then(r => r.ok ? r.text() : '');
+      const txt = await fetch(`${BASE}/history/${slug}.yml`, { cache: 'no-store' }).then(r => r.ok ? r.text() : '');
       if (txt) {
         const entries = parseYaml(txt);
         const latest  = entries[entries.length - 1];
@@ -1114,8 +1141,18 @@ function renderCharts(services, incidents) {
   };
 
   const scalesXY = {
-    x: { ticks:{ color:'rgba(232,226,217,0.3)', font:{size:9}, maxTicksLimit:7 }, grid:{ color:DIM } },
-    y: { ticks:{ color:'rgba(232,226,217,0.3)', font:{size:9} }, grid:{ color:DIM } },
+    x: {
+      ticks: {
+        color: 'rgba(232,226,217,0.3)',
+        font: { size: 9 },
+        // Mostra: primo giorno, ogni 5° giorno, e sempre l'ultimo (oggi)
+        maxTicksLimit: 30,
+        autoSkip: false,
+        callback: (_, i) => (i === 0 || i === labels30.length - 1 || i % 5 === 4) ? labels30[i] : '',
+      },
+      grid: { color: DIM }
+    },
+    y: { ticks: { color: 'rgba(232,226,217,0.3)', font: { size: 9 } }, grid: { color: DIM } },
   };
 
   // ── Uptime per giorno (dati reali da history Upptime) ──
@@ -1210,7 +1247,7 @@ function renderCharts(services, incidents) {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend:{ display:false }, tooltip: tooltipDefaults },
       scales: {
-        x: { ...scalesXY.x, ticks:{ ...scalesXY.x.ticks, maxTicksLimit:4 } },
+        x: { ...scalesXY.x },
         y: { ...scalesXY.y,
              ticks:{ ...scalesXY.y.ticks, callback: v => v+'ms' },
              // Quando non ci sono dati, mostra comunque l'asse
@@ -1236,7 +1273,7 @@ function renderCharts(services, incidents) {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend:{ display:false }, tooltip: tooltipDefaults },
       scales: {
-        x: { ...scalesXY.x, ticks:{ ...scalesXY.x.ticks, maxTicksLimit:4 } },
+        x: { ...scalesXY.x },
         y: { ...scalesXY.y, ticks:{ ...scalesXY.y.ticks, stepSize:1 } },
       },
     },
