@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Status — LuxHaven360</title>
   <meta name="description" content="Stato in tempo reale dei servizi LuxHaven360" />
+  <!-- Favicon inline SVG — evita 404 -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%230A0A0F'/><path d='M8 1L10 6H15L11 9.5L12.5 14.5L8 11.5L3.5 14.5L5 9.5L1 6H6L8 1Z' fill='%23C9A96E'/></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -230,6 +232,17 @@
       border: 1px solid var(--bg-border);
       margin-bottom: 3.5rem;
     }
+    /* Separatori di gruppo */
+    .service-group-header {
+      background: rgba(201,169,110,0.04);
+      padding: 0.55rem 1.5rem;
+      font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--gold); border-bottom: 1px solid var(--bg-border);
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .service-group-header::after {
+      content: ''; flex: 1; height: 1px; background: var(--bg-border);
+    }
     .service-row {
       background: var(--bg-card);
       display: flex; align-items: center; padding: 1.25rem 1.5rem; gap: 1rem;
@@ -262,6 +275,7 @@
     .badge-up       { color: var(--green);  border-color: rgba(76,175,125,0.3); }
     .badge-degraded { color: var(--yellow); border-color: rgba(232,184,75,0.3); }
     .badge-down     { color: var(--red);    border-color: rgba(217,91,91,0.3); }
+    .badge-unknown  { color: var(--text-dim); border-color: rgba(232,226,217,0.15); }
 
     /* ── TIMELINE ── */
     .timeline-section { margin-bottom: 3.5rem; }
@@ -297,7 +311,7 @@
 
     /* ── CHARTS ── */
     .charts-grid {
-      display: grid; grid-template-columns: 2fr 1fr 1fr;
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
       gap: 1.5rem; margin-bottom: 3.5rem;
     }
     @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr 1fr; } }
@@ -486,18 +500,13 @@
       <span class="section-tag" id="services-count">Caricamento…</span>
     </div>
     <div class="services-grid" id="services-grid">
-      <div class="service-row">
-        <div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div>
-        <div style="flex:1"><div class="skeleton" style="height:12px;width:40%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:60%"></div></div>
-      </div>
-      <div class="service-row">
-        <div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div>
-        <div style="flex:1"><div class="skeleton" style="height:12px;width:30%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:50%"></div></div>
-      </div>
-      <div class="service-row">
-        <div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div>
-        <div style="flex:1"><div class="skeleton" style="height:12px;width:50%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:40%"></div></div>
-      </div>
+      <!-- skeleton × 6 -->
+      <div class="service-row"><div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:40%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:60%"></div></div></div>
+      <div class="service-row"><div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:50%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:40%"></div></div></div>
+      <div class="service-row"><div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:30%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:55%"></div></div></div>
+      <div class="service-row"><div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:45%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:60%"></div></div></div>
+      <div class="service-row"><div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:35%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:50%"></div></div></div>
+      <div class="service-row"><div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:55%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:70%"></div></div></div>
     </div>
   </section>
 
@@ -523,24 +532,24 @@
       <span class="section-tag">Ultimi 30 giorni</span>
     </div>
     <div class="charts-grid">
-      <!-- Uptime trend (large) -->
+      <!-- Uptime trend -->
       <div class="chart-card">
         <div class="chart-title">Uptime (%)</div>
         <div class="chart-wrap-tall"><canvas id="chartUptime"></canvas></div>
       </div>
-      <!-- Response time -->
+      <!-- Response time — dati reali da Upptime history/*.yml -->
       <div class="chart-card">
         <div class="chart-title">Tempo di risposta (ms)</div>
         <div class="chart-stat" id="avg-response-display">—</div>
-        <div class="chart-stat-label">media attuale</div>
-        <div style="margin-top:1rem" class="chart-wrap"><canvas id="chartResponse"></canvas></div>
+        <div class="chart-stat-label">media attuale · dati Upptime</div>
+        <div style="margin-top:1rem" class="chart-wrap-tall"><canvas id="chartResponse"></canvas></div>
       </div>
       <!-- Incidents -->
       <div class="chart-card">
         <div class="chart-title">Downtime (eventi)</div>
         <div class="chart-stat" id="downtime-events-display">—</div>
         <div class="chart-stat-label">ultimi 30 giorni</div>
-        <div style="margin-top:1rem" class="chart-wrap"><canvas id="chartDowntime"></canvas></div>
+        <div style="margin-top:1rem" class="chart-wrap-tall"><canvas id="chartDowntime"></canvas></div>
       </div>
     </div>
   </section>
@@ -565,7 +574,7 @@
 
 <footer>
   <div class="footer-inner">
-    <span class="footer-text">© 2024 LuxHaven360 · Powered by Upptime + GitHub Pages · 100% gratuito</span>
+    <span class="footer-text">© <span id="footer-year"></span> LuxHaven360 · Powered by Upptime + GitHub Pages</span>
     <a href="https://reports.luxhaven360.com" class="footer-link">Segnala un problema →</a>
   </div>
 </footer>
@@ -788,7 +797,30 @@ async function fetchIncidents() {
 //  SYNTHESIZE FROM GITHUB (fallback se api/status.json non esiste)
 // ─────────────────────────────────────────────────────
 async function synthesizeFromGitHub() {
-  let config = { sites: [{ name: 'LuxHaven360', url: 'https://luxhaven360.com' }] };
+  // Fallback hardcoded — mappa completa dei servizi LuxHaven360 v3
+  // Aggiornata analizzando tutti i sorgenti: Frontend, GAS, Infrastruttura, Dipendenze
+  let config = { sites: [
+    // ── Frontend ────────────────────────────────────────────
+    { name: 'Sito Principale',           url: 'https://luxhaven360.com',                                      group: 'frontend' },
+    { name: 'The Project',               url: 'https://luxhaven360.com/the-project/',                         group: 'frontend' },
+    { name: 'Community Hub',             url: 'https://luxhaven360.com/the-project/community-hub',            group: 'frontend' },
+    { name: 'Product Details',           url: 'https://luxhaven360.com/product-details/',                     group: 'frontend' },
+    { name: 'Reports',                   url: 'https://reports.luxhaven360.com',                              group: 'frontend' },
+    // ── GAS Backend ─────────────────────────────────────────
+    { name: 'GAS Backend Principale',    url: 'https://script.google.com/macros/s/AKfycbwr79RkXIEocpuOKaM6uMJqE6VFs9wjlUPvrr__FvDbDDrD2ELB1NbfrWP3BCYpHj2u/exec?action=ping', group: 'backend', slug: 'gas-backend-principale' },
+    { name: 'GAS Community & Early Access', url: 'https://script.google.com/macros/s/AKfycbwrDLCy9xO2mcX0ORieD5k9Ck7_6ysrnBfayWg_Gd_Pno4UrCa-2JuBTvkzBNvkfQ_xxQ/exec', group: 'backend', slug: 'gas-community-early-access' },
+    { name: 'GAS Abbonamenti',           url: 'https://script.google.com/macros/s/AKfycbyLb-E_43gf3inu4cC062Cn-OpbXK1fM8QiflQ8k6F_uxRrorcTVhWVUOgOWTJrOFwa/exec?action=ping', group: 'backend', slug: 'gas-abbonamenti' },
+    { name: 'GAS SiteGuard',             url: 'https://script.google.com/macros/s/AKfycbyLT41A8PPuQwyjCHkFA6anJhp-ywVJhy7TlMpxydaw3osPuplcsfafiNANA3s1hzk7/exec?action=health', group: 'backend', slug: 'gas-siteguard' },
+    // ── Infrastruttura ──────────────────────────────────────
+    { name: 'CDN Assets',                url: 'https://cdn.luxhaven360.com',                                  group: 'infra' },
+    { name: 'Reports API',               url: 'https://reports-api.luxhaven360.com/health',                   group: 'infra' },
+    // ── Database & Realtime ─────────────────────────────────
+    { name: 'Supabase',                  url: 'https://tilxhlrwhqvmpxugvslw.supabase.co',                     group: 'infra', slug: 'supabase' },
+    // ── Dipendenze critiche esterne ─────────────────────────
+    { name: 'Frankfurter Cambio Valuta', url: 'https://api.frankfurter.app/latest',                           group: 'deps', slug: 'frankfurter-cambio-valuta' },
+    { name: 'Stripe Checkout',           url: 'https://checkout.stripe.com',                                  group: 'deps', slug: 'stripe-checkout' },
+    { name: 'ipapi.co Geolocalizzazione',url: 'https://ipapi.co/json/',                                       group: 'deps', slug: 'ipapi-co-geolocalizzazione' },
+  ]};
 
   try {
     const txt = await fetch(`${BASE}/.upptimerc.yml`).then(r => r.text());
@@ -810,7 +842,12 @@ async function synthesizeFromGitHub() {
   } catch {}
 
   const serviceData = await Promise.all(config.sites.map(async site => {
-    const slug = site.name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+    // Upptime genera lo slug dal name nel .yml: lowercase, spaces→hyphens
+    // Se il name contiene numeri o caratteri speciali, vengono mantenuti (es. 360)
+    const slug = (site.slug || site.name)
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
     let status = 'unknown', uptime = '—', response = '—', history = [];
     try {
       const txt = await fetch(`${BASE}/history/${slug}.yml`).then(r => r.ok ? r.text() : '');
@@ -825,11 +862,12 @@ async function synthesizeFromGitHub() {
         uptime  = entries.length ? ((ups / entries.length) * 100).toFixed(2) : '—';
         history = entries.slice(-90).map(e => ({
           date: e.startTime,
+          responseTime: e.responseTime || null,
           status: (e.status === '200' || e.status === 'up') ? 'up' : e.status === 'degraded' ? 'degraded' : 'down',
         }));
       }
     } catch {}
-    return { name: site.name, url: site.url, status, uptime, response, history };
+    return { name: site.name, url: site.url, group: site.group || null, status, uptime, response, history };
   }));
 
   return { services: serviceData };
@@ -844,6 +882,7 @@ function parseYaml(text) {
       const m = line.match(/^\s*([\w]+):\s*(.+)/);
       if (m) entry[m[1].trim()] = m[2].trim().replace(/^['"]|['"]$/g,'');
     }
+    // Upptime usa 'startTime' come campo data; salva anche responseTime
     if (entry.startTime) entries.push(entry);
   }
   return entries;
@@ -854,8 +893,10 @@ function parseYaml(text) {
 // ─────────────────────────────────────────────────────
 function renderAll(data, fromCache = false) {
   const services  = data.services || [];
-  const hasDown     = services.some(s => s.status === 'down');
-  const hasDegraded = services.some(s => s.status === 'degraded');
+  // Per lo stato hero e le stats, usa solo i servizi core (no dipendenze esterne)
+  const coreForHero = services.filter(s => s.group !== 'deps');
+  const hasDown     = coreForHero.some(s => s.status === 'down');
+  const hasDegraded = coreForHero.some(s => s.status === 'degraded');
 
   // Active incident / maintenance detection
   const activeIncident = (data.incidents || []).find(i => !i.resolved);
@@ -865,6 +906,8 @@ function renderAll(data, fromCache = false) {
   let heroTitle = 'Tutti i sistemi<br><em>operativi</em>';
   let iconColor = GREEN;
   let iconPath  = 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z';
+
+  const allUnknown = services.length > 0 && services.every(s => s.status === 'unknown');
 
   if (hasDown) {
     heroTitle = 'Interruzione<br><em>rilevata</em>';
@@ -876,6 +919,12 @@ function renderAll(data, fromCache = false) {
     iconColor = YELLOW;
     iconPath  = 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z';
     $('live-dot').style.background = YELLOW;
+  } else if (allUnknown) {
+    heroTitle = 'In attesa dei<br><em>primi dati</em>';
+    iconColor = 'rgba(232,226,217,0.3)';
+    iconPath  = 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z';
+    $('live-dot').style.background = 'rgba(232,226,217,0.3)';
+    $('hero-subtitle').innerHTML = 'Upptime inizierà a raccogliere dati entro 5 minuti · <a href="https://github.com/luxhaven360/upptime" style="color:var(--gold)">Verifica il repo →</a>';
   } else {
     $('live-dot').style.background = GREEN;
   }
@@ -883,10 +932,12 @@ function renderAll(data, fromCache = false) {
   $('hero-icon').innerHTML = `<svg viewBox="0 0 24 24" style="fill:${iconColor}"><path d="${iconPath}"/></svg>`;
   $('hero-title').innerHTML = heroTitle;
 
-  // Stats
-  const uptimes   = services.filter(s => s.uptime && s.uptime !== '—').map(s => parseFloat(s.uptime));
+  // Stats — usa solo i servizi "core" (frontend + backend + infra) per l'uptime globale,
+  // esclude le dipendenze esterne che non sono sotto il nostro controllo
+  const coreServices = services.filter(s => s.group !== 'deps');
+  const uptimes   = coreServices.filter(s => s.uptime && s.uptime !== '—').map(s => parseFloat(s.uptime));
   const avgUptime = uptimes.length ? (uptimes.reduce((a,b)=>a+b,0)/uptimes.length).toFixed(2) : '—';
-  const responses = services.filter(s => s.response && s.response !== '—').map(s => parseFloat(s.response));
+  const responses = coreServices.filter(s => s.response && s.response !== '—').map(s => parseFloat(s.response));
   const avgResp   = responses.length ? Math.round(responses.reduce((a,b)=>a+b,0)/responses.length) : '—';
 
   $('stat-uptime').textContent    = avgUptime !== '—' ? `${avgUptime}%` : '—';
@@ -927,26 +978,49 @@ function renderBanner(incident) {
 }
 
 // ─────────────────────────────────────────────────────
-//  RENDER SERVICES
+//  RENDER SERVICES — con separatori di gruppo
 // ─────────────────────────────────────────────────────
+const GROUP_LABELS = {
+  frontend: '🌐 Frontend',
+  backend:  '⚙ GAS Backend',
+  infra:    '🏗 Infrastruttura & Database',
+  deps:     '🔗 Dipendenze Esterne',
+};
+
 function renderServices(services) {
   const grid = $('services-grid');
   $('services-count').textContent = `${services.length} servizi monitorati`;
 
-  grid.innerHTML = services.map(svc => {
+  const allUnknown = services.length > 0 && services.every(s => s.status === 'unknown');
+  let lastGroup = null;
+  const rows = [];
+
+  services.forEach(svc => {
+    // Inserisci separatore quando cambia il gruppo
+    const grp = svc.group || null;
+    if (grp && grp !== lastGroup) {
+      lastGroup = grp;
+      rows.push(`<div class="service-group-header">${GROUP_LABELS[grp] || grp}</div>`);
+    }
+
     const col   = statusColor(svc.status);
-    const label = statusLabel(svc.status);
-    const cls   = `badge-${svc.status || 'unknown'}`;
     const upPct = svc.uptime !== '—' ? parseFloat(svc.uptime) : null;
     const resp  = svc.response && svc.response !== '—' ? `${svc.response}ms` : '—';
 
+    // Mini sparkline — altezze determinate dallo status reale
     const history = (svc.history || []).slice(-12);
-    const bars = history.map(h =>
-      `<div class="bar ${h.status === 'up' ? 'status-up' : h.status === 'degraded' ? 'status-degraded' : 'status-down'}"
-           style="height:${8 + Math.floor(Math.random() * 14)}px"></div>`
-    ).join('');
+    const bars = history.length
+      ? history.map(h => {
+          const ht = h.status === 'up' ? 18 : h.status === 'degraded' ? 12 : h.status === 'down' ? 6 : 4;
+          const cls = h.status === 'up' ? 'status-up' : h.status === 'degraded' ? 'status-degraded' : 'status-down';
+          return `<div class="bar ${cls}" style="height:${ht}px"></div>`;
+        }).join('')
+      : '';
 
-    return `
+    const badgeCls = svc.status === 'unknown' ? 'badge-unknown' : `badge-${svc.status}`;
+    const badgeLbl = { up:'Operativo', degraded:'Degradato', down:'Down', unknown:'In attesa' }[svc.status] || 'In attesa';
+
+    rows.push(`
       <div class="service-row fade-in">
         <div class="service-indicator" style="background:${col}"></div>
         <div class="service-info">
@@ -959,9 +1033,11 @@ function renderServices(services) {
           <span class="uptime-value" style="color:${col}">${upPct !== null ? upPct.toFixed(1)+'%' : '—'}</span>
           <span class="uptime-label">uptime</span>
         </div>
-        <span class="service-status-badge ${cls}">${label}</span>
-      </div>`;
-  }).join('');
+        <span class="service-status-badge ${badgeCls}">${badgeLbl}</span>
+      </div>`);
+  });
+
+  grid.innerHTML = rows.join('');
 }
 
 // ─────────────────────────────────────────────────────
@@ -974,9 +1050,14 @@ function renderTimeline(services) {
   wrap.innerHTML = services.map(svc => {
     const hist   = (svc.history || []).slice(-90);
     const padded = Array(90 - hist.length).fill({ status: 'unknown' }).concat(hist);
+    const today = new Date();
     const bars   = padded.map((h, i) => {
       const col = statusColor(h.status);
-      const tip = h.date ? fmtDate(h.date) : `Giorno ${i + 1}`;
+      // Calcola la data reale della barra: barra 0 = 89 giorni fa, barra 89 = oggi
+      const barDate = new Date(today);
+      barDate.setDate(barDate.getDate() - (89 - i));
+      const barDateStr = barDate.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+      const tip = h.date ? fmtDate(h.date) : barDateStr;
       return `<div class="timeline-bar" style="background:${col}" data-tip="${tip}"></div>`;
     }).join('');
 
@@ -988,6 +1069,10 @@ function renderTimeline(services) {
           <span>${uptimeTxt}</span>
         </div>
         <div class="timeline-bars">${bars}</div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <span style="font-size:0.58rem;color:var(--text-dim);letter-spacing:0.04em">← 90 giorni fa</span>
+          <span style="font-size:0.58rem;color:var(--text-dim);letter-spacing:0.04em">Oggi →</span>
+        </div>
       </div>`;
   }).join('');
 }
@@ -996,10 +1081,12 @@ function renderTimeline(services) {
 //  RENDER CHARTS
 // ─────────────────────────────────────────────────────
 function renderCharts(services, incidents) {
-  const labels30 = Array.from({ length: 30 }, (_, i) => {
+  // Genera labels per gli ultimi 30 giorni (25 feb → 25 mar se oggi è 25 mar)
+  const dates30 = Array.from({ length: 30 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (29 - i));
-    return d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit' });
+    return d;
   });
+  const labels30 = dates30.map(d => d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit' }));
 
   const tooltipDefaults = {
     backgroundColor: '#1a1a24',
@@ -1017,35 +1104,56 @@ function renderCharts(services, incidents) {
     y: { ticks:{ color:'rgba(232,226,217,0.3)', font:{size:9} }, grid:{ color:DIM } },
   };
 
-  // Build uptime per day from history
-  const uptimePerDay = labels30.map(() => {
-    const allPct = services
+  // ── Uptime per giorno (dati reali da history Upptime) ──
+  // Ogni entry di history ha un campo 'date' (startTime del check)
+  const uptimePerDay = dates30.map(day => {
+    const dayStr = day.toISOString().split('T')[0];
+    const perSvc = services
       .filter(s => s.history?.length)
       .map(s => {
-        const ups = s.history.filter(h => h.status === 'up').length;
-        return s.history.length ? (ups / s.history.length) * 100 : null;
+        const entries = s.history.filter(h => h.date && new Date(h.date).toISOString().split('T')[0] === dayStr);
+        if (!entries.length) return null;
+        const ups = entries.filter(e => e.status === 'up').length;
+        return (ups / entries.length) * 100;
       })
       .filter(v => v !== null);
-    return allPct.length ? allPct.reduce((a,b)=>a+b,0)/allPct.length : 99;
+    // Se non ci sono entry per quel giorno → null (nessun dato disponibile)
+    return perSvc.length ? perSvc.reduce((a,b)=>a+b,0)/perSvc.length : null;
   });
 
-  // Response time history
-  const respPerDay = labels30.map(() => 100 + Math.random() * 120);
+  // ── Tempo di risposta per giorno (dati reali da history Upptime) ──
+  // NOTA: se Upptime non ha ancora raccolto dati, il grafico sarà vuoto (è corretto)
+  const respPerDay = dates30.map(day => {
+    const dayStr = day.toISOString().split('T')[0];
+    const values = [];
+    services.forEach(svc => {
+      (svc.history || []).forEach(h => {
+        if (h.date && new Date(h.date).toISOString().split('T')[0] === dayStr) {
+          const rt = parseFloat(h.responseTime || h.response);
+          if (!isNaN(rt) && rt > 0) values.push(rt);
+        }
+      });
+    });
+    return values.length ? Math.round(values.reduce((a,b)=>a+b,0)/values.length) : null;
+  });
 
-  // Downtime events per day
-  const cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate() - 30);
-  const incidentsByDay = labels30.map((lbl, i) => {
-    return incidents.filter(inc => {
-      if (!inc.startTime) return false;
-      const d = new Date(inc.startTime);
-      const t = new Date(); t.setDate(t.getDate() - (29 - i));
-      return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'}) === lbl;
-    }).length;
+  // Mostra la media attuale come ultima risposta disponibile
+  const lastKnownResp = respPerDay.filter(v => v !== null).pop();
+  if (lastKnownResp) {
+    $('avg-response-display').textContent = `${lastKnownResp}ms`;
+  }
+
+  // ── Incidenti per giorno ──
+  const incidentsByDay = dates30.map(day => {
+    const dayStr = day.toISOString().split('T')[0];
+    return incidents.filter(inc =>
+      inc.startTime && new Date(inc.startTime).toISOString().split('T')[0] === dayStr
+    ).length;
   });
   const totalDowntime = incidentsByDay.reduce((a,b)=>a+b,0);
   $('downtime-events-display').textContent = totalDowntime;
 
-  // Chart 1: Uptime line
+  // ── Chart 1: Uptime ──
   if (chartUptime) chartUptime.destroy();
   chartUptime = new Chart($('chartUptime'), {
     type: 'line',
@@ -1056,6 +1164,7 @@ function renderCharts(services, incidents) {
         borderColor: GOLD,
         backgroundColor: 'rgba(201,169,110,0.06)',
         borderWidth: 1.5, pointRadius: 0, tension: 0.35, fill: true,
+        spanGaps: true, // collega i punti anche quando ci sono null
       }],
     },
     options: {
@@ -1069,7 +1178,7 @@ function renderCharts(services, incidents) {
     },
   });
 
-  // Chart 2: Response time bar
+  // ── Chart 2: Tempo di risposta (dati reali Upptime) ──
   if (chartResponse) chartResponse.destroy();
   chartResponse = new Chart($('chartResponse'), {
     type: 'line',
@@ -1080,6 +1189,7 @@ function renderCharts(services, incidents) {
         borderColor: 'rgba(91,155,217,0.7)',
         backgroundColor: 'rgba(91,155,217,0.06)',
         borderWidth: 1, pointRadius: 0, tension: 0.3, fill: true,
+        spanGaps: true,
       }],
     },
     options: {
@@ -1087,12 +1197,16 @@ function renderCharts(services, incidents) {
       plugins: { legend:{ display:false }, tooltip: tooltipDefaults },
       scales: {
         x: { ...scalesXY.x, ticks:{ ...scalesXY.x.ticks, maxTicksLimit:4 } },
-        y: { ...scalesXY.y, ticks:{ ...scalesXY.y.ticks, callback: v => v+'ms' } },
+        y: { ...scalesXY.y,
+             ticks:{ ...scalesXY.y.ticks, callback: v => v+'ms' },
+             // Quando non ci sono dati, mostra comunque l'asse
+             grace: '5%',
+           },
       },
     },
   });
 
-  // Chart 3: Downtime events bar
+  // ── Chart 3: Downtime events ──
   if (chartDowntime) chartDowntime.destroy();
   chartDowntime = new Chart($('chartDowntime'), {
     type: 'bar',
@@ -1183,6 +1297,9 @@ function renderError() {
 //  START
 // ─────────────────────────────────────────────────────
 loadData();
+
+// Anno copyright automatico
+document.getElementById('footer-year').textContent = new Date().getFullYear();
 </script>
 </body>
 </html>
