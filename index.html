@@ -816,28 +816,27 @@ async function fetchIncidents() {
 // ─────────────────────────────────────────────────────
 async function synthesizeFromGitHub() {
   // Fallback hardcoded — mappa completa dei servizi LuxHaven360 v3
-  // Aggiornata analizzando tutti i sorgenti: Frontend, GAS, Infrastruttura, Dipendenze
+  // Frontend · Servizi Backend · Infrastruttura · Dipendenze
   let config = { sites: [
     // ── Frontend ────────────────────────────────────────────
     { name: 'Sito Principale',           url: 'https://luxhaven360.com',                                      group: 'frontend' },
     { name: 'The Project',               url: 'https://luxhaven360.com/the-project/',                         group: 'frontend' },
-    { name: 'Community Hub',             url: 'https://luxhaven360.com/the-project/community-hub',            group: 'frontend' },
-    { name: 'Product Details',           url: 'https://luxhaven360.com/product-details/',                     group: 'frontend' },
-    { name: 'Reports',                   url: 'https://reports.luxhaven360.com',                              group: 'frontend' },
-    // ── GAS Backend ─────────────────────────────────────────
-    { name: 'GAS Backend Principale',    url: 'https://script.google.com/macros/s/AKfycbwr79RkXIEocpuOKaM6uMJqE6VFs9wjlUPvrr__FvDbDDrD2ELB1NbfrWP3BCYpHj2u/exec?action=ping', group: 'backend', slug: 'gas-backend-principale' },
-    { name: 'GAS Community & Early Access', url: 'https://script.google.com/macros/s/AKfycbwrDLCy9xO2mcX0ORieD5k9Ck7_6ysrnBfayWg_Gd_Pno4UrCa-2JuBTvkzBNvkfQ_xxQ/exec', group: 'backend', slug: 'gas-community-early-access' },
-    { name: 'GAS Abbonamenti',           url: 'https://script.google.com/macros/s/AKfycbyLb-E_43gf3inu4cC062Cn-OpbXK1fM8QiflQ8k6F_uxRrorcTVhWVUOgOWTJrOFwa/exec?action=ping', group: 'backend', slug: 'gas-abbonamenti' },
-    { name: 'GAS SiteGuard',             url: 'https://script.google.com/macros/s/AKfycbyLT41A8PPuQwyjCHkFA6anJhp-ywVJhy7TlMpxydaw3osPuplcsfafiNANA3s1hzk7/exec?action=health', group: 'backend', slug: 'gas-siteguard' },
+    { name: 'Sistema Prenotazioni',      url: 'https://luxhaven360.com/product-details/',                     group: 'frontend', slug: 'sistema-prenotazioni' },
+    { name: 'Portale Reports',           url: 'https://reports.luxhaven360.com',                              group: 'frontend', slug: 'portale-reports' },
+    // ── Servizi Backend ──────────────────────────────────────
+    { name: 'API Core',                  url: 'https://script.google.com/macros/s/AKfycbwr79RkXIEocpuOKaM6uMJqE6VFs9wjlUPvrr__FvDbDDrD2ELB1NbfrWP3BCYpHj2u/exec?action=ping', group: 'backend', slug: 'api-core' },
+    { name: 'Servizi Community',         url: 'https://script.google.com/macros/s/AKfycbwrDLCy9xO2mcX0ORieD5k9Ck7_6ysrnBfayWg_Gd_Pno4UrCa-2JuBTvkzBNvkfQ_xxQ/exec',          group: 'backend', slug: 'servizi-community' },
+    { name: 'Sistema Abbonamenti',       url: 'https://script.google.com/macros/s/AKfycbyLb-E_43gf3inu4cC062Cn-OpbXK1fM8QiflQ8k6F_uxRrorcTVhWVUOgOWTJrOFwa/exec?action=ping', group: 'backend', slug: 'sistema-abbonamenti' },
+    { name: 'Protezione Accessi',        url: 'https://script.google.com/macros/s/AKfycbyLT41A8PPuQwyjCHkFA6anJhp-ywVJhy7TlMpxydaw3osPuplcsfafiNANA3s1hzk7/exec?action=health', group: 'backend', slug: 'protezione-accessi' },
     // ── Infrastruttura ──────────────────────────────────────
     { name: 'CDN Assets',                url: 'https://cdn.luxhaven360.com',                                  group: 'infra' },
     { name: 'Reports API',               url: 'https://reports-api.luxhaven360.com/health',                   group: 'infra' },
     // ── Database & Realtime ─────────────────────────────────
-    { name: 'Supabase',                  url: 'https://tilxhlrwhqvmpxugvslw.supabase.co',                     group: 'infra', slug: 'supabase' },
+    { name: 'Database',                  url: 'https://tilxhlrwhqvmpxugvslw.supabase.co',                     group: 'infra', slug: 'database' },
     // ── Dipendenze critiche esterne ─────────────────────────
-    { name: 'Frankfurter Cambio Valuta', url: 'https://api.frankfurter.app/latest',                           group: 'deps', slug: 'frankfurter-cambio-valuta' },
-    { name: 'Stripe Checkout',           url: 'https://checkout.stripe.com',                                  group: 'deps', slug: 'stripe-checkout' },
-    { name: 'ipapi.co Geolocalizzazione',url: 'https://ipapi.co/json/',                                       group: 'deps', slug: 'ipapi-co-geolocalizzazione' },
+    { name: 'API Cambio Valuta',         url: 'https://api.frankfurter.app/latest',                           group: 'deps', slug: 'api-cambio-valuta' },
+    { name: 'Pagamenti Stripe',          url: 'https://checkout.stripe.com',                                  group: 'deps', slug: 'pagamenti-stripe' },
+    { name: 'Geolocalizzazione',         url: 'https://ipapi.co/json/',                                       group: 'deps', slug: 'geolocalizzazione' },
   ]};
 
   // ── CONTROLLO UNICO: il repo Upptime è già configurato? ──
@@ -1028,7 +1027,7 @@ function renderBanner(incident) {
 // ─────────────────────────────────────────────────────
 const GROUP_LABELS = {
   frontend: '🌐 Frontend',
-  backend:  '⚙ GAS Backend',
+  backend:  '⚙ Servizi Backend',
   infra:    '🏗 Infrastruttura & Database',
   deps:     '🔗 Dipendenze Esterne',
 };
