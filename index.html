@@ -102,12 +102,15 @@
       height: 64px;
     }
     .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-    .brand-mark {
-      width: 32px; height: 32px;
-      border: 1px solid var(--gold);
-      display: flex; align-items: center; justify-content: center;
+    .brand-logo {
+      height: 36px;
+      width: auto;
+      display: block;
+      /* Fallback se l'immagine non carica: mostra il testo brand */
+      object-fit: contain;
     }
-    .brand-mark svg { width: 16px; height: 16px; fill: var(--gold); }
+    /* Nasconde il testo di fallback quando il logo carica correttamente */
+    .brand-logo-loaded + .brand-name { display: none; }
     .brand-name {
       font-family: var(--font-serif); font-size: 1.1rem; font-weight: 400;
       letter-spacing: 0.12em; color: var(--text); text-transform: uppercase;
@@ -436,11 +439,14 @@
 <header style="position:sticky;top:0">
   <div class="header-inner">
     <a href="https://luxhaven360.com" class="brand">
-      <div class="brand-mark">
-        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-          <path d="M8 1L10 6H15L11 9.5L12.5 14.5L8 11.5L3.5 14.5L5 9.5L1 6H6L8 1Z"/>
-        </svg>
-      </div>
+      <img
+        src="https://raw.githubusercontent.com/luxhaven360/luxhaven360-site/main/assets/logo-azienda.png"
+        alt="LuxHaven360"
+        class="brand-logo"
+        onload="this.classList.add('brand-logo-loaded')"
+        onerror="this.style.display='none'"
+      />
+      <!-- Fallback testo visibile solo se il logo non carica -->
       <span class="brand-name">LuxHaven360</span>
     </a>
     <nav class="header-nav">
@@ -469,6 +475,8 @@
     <p class="hero-subtitle" id="hero-subtitle">
       Aggiornato ogni 60 secondi · Ultimo controllo: <span id="last-check">—</span>
     </p>
+    <!-- Messaggio separato per stati speciali — MAI sovrascrivere hero-subtitle (contiene #last-check) -->
+    <p class="hero-subtitle" id="hero-notice" style="display:none;margin-top:0.4rem"></p>
     <div class="hero-meta">
       <div class="hero-stat">
         <span class="hero-stat-value" id="stat-uptime">—</span>
@@ -914,19 +922,25 @@ function renderAll(data, fromCache = false) {
     iconColor = RED;
     iconPath  = 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z';
     $('live-dot').style.background = RED;
+    $('hero-notice').style.display = 'none';
   } else if (hasDegraded) {
     heroTitle = 'Prestazioni<br><em>degradate</em>';
     iconColor = YELLOW;
     iconPath  = 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z';
     $('live-dot').style.background = YELLOW;
+    $('hero-notice').style.display = 'none';
   } else if (allUnknown) {
     heroTitle = 'In attesa dei<br><em>primi dati</em>';
     iconColor = 'rgba(232,226,217,0.3)';
     iconPath  = 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z';
     $('live-dot').style.background = 'rgba(232,226,217,0.3)';
-    $('hero-subtitle').innerHTML = 'Upptime inizierà a raccogliere dati entro 5 minuti · <a href="https://github.com/luxhaven360/upptime" style="color:var(--gold)">Verifica il repo →</a>';
+    // ⚠ Non toccare MAI hero-subtitle (contiene <span id="last-check">).
+    //   Usiamo hero-notice separato per il messaggio aggiuntivo.
+    $('hero-notice').innerHTML = 'Upptime inizierà a raccogliere dati entro 5 minuti · <a href="https://github.com/luxhaven360/upptime" style="color:var(--gold)">Verifica il repo →</a>';
+    $('hero-notice').style.display = 'block';
   } else {
     $('live-dot').style.background = GREEN;
+    $('hero-notice').style.display = 'none';
   }
 
   $('hero-icon').innerHTML = `<svg viewBox="0 0 24 24" style="fill:${iconColor}"><path d="${iconPath}"/></svg>`;
