@@ -830,7 +830,7 @@ async function synthesizeFromGitHub() {
     { name: 'CDN Assets',                url: 'https://cdn.luxhaven360.com',                                  group: 'infra' },
     { name: 'Reports API',               url: 'https://reports-api.luxhaven360.com/health',                   group: 'infra' },
     // ── Database & Realtime ─────────────────────────────────
-    { name: 'Database',                  url: 'https://tilxhlrwhqvmpxugvslw.supabase.co',                     group: 'infra', slug: 'database' },
+    { name: 'Database',                  url: 'https://tilxhlrwhqvmpxugvslw.supabase.co/auth/v1/health',       group: 'infra', slug: 'database' },
     // ── Dipendenze critiche esterne ─────────────────────────
     { name: 'API Cambio Valuta',         url: 'https://api.frankfurter.app/latest',                           group: 'deps', slug: 'api-cambio-valuta' },
     { name: 'Pagamenti Stripe',          url: 'https://checkout.stripe.com',                                  group: 'deps', slug: 'pagamenti-stripe' },
@@ -897,11 +897,27 @@ async function synthesizeFromGitHub() {
         }
         const ups = entries.filter(e => e.status === '200' || e.status === 'up').length;
         uptime  = entries.length ? ((ups / entries.length) * 100).toFixed(2) : '—';
-        history = entries.slice(-90).map(e => ({
-          date: e.startTime,
-          responseTime: e.responseTime || null,
-          status: (e.status === '200' || e.status === 'up') ? 'up' : e.status === 'degraded' ? 'degraded' : 'down',
-        }));
+
+        // ── Aggrega per giorno: worst status vince (down > degraded > up) ──
+        const RANK = { down: 2, degraded: 1, up: 0 };
+        const dayMap = {};
+        for (const e of entries) {
+          if (!e.startTime) continue;
+          const dayKey = new Date(e.startTime).toISOString().split('T')[0];
+          const st = (e.status === '200' || e.status === 'up') ? 'up'
+                   : e.status === 'degraded' ? 'degraded' : 'down';
+          if (!dayMap[dayKey] || RANK[st] > RANK[dayMap[dayKey].status]) {
+            dayMap[dayKey] = { date: dayKey + 'T12:00:00Z', status: st };
+          }
+        }
+        // Costruisce array esatto di 90 giorni: [89 giorni fa … oggi]
+        const _today = new Date();
+        history = Array.from({ length: 90 }, (_, i) => {
+          const d = new Date(_today);
+          d.setDate(d.getDate() - (89 - i));
+          const key = d.toISOString().split('T')[0];
+          return dayMap[key] || { date: key + 'T12:00:00Z', status: 'unknown' };
+        });
       }
     } catch {}
     return { name: site.name, url: site.url, group: site.group || null, status, uptime, response, history };
@@ -1090,12 +1106,15 @@ function renderTimeline(services) {
   if (!services.length) { wrap.innerHTML = '<p style="color:var(--text-dim);font-size:0.75rem">Dati non disponibili</p>'; return; }
 
   wrap.innerHTML = services.map(svc => {
-    const hist   = (svc.history || []).slice(-90);
-    const padded = Array(90 - hist.length).fill({ status: 'unknown' }).concat(hist);
+    // history è già un array di esattamente 90 giorni (index 0 = 89 giorni fa, index 89 = oggi)
+    const hist = svc.history || [];
+    // Se per qualche motivo non è ancora aggregato per giorni, fai il padding
+    const padded = hist.length === 90 ? hist
+      : Array(90 - hist.length).fill({ status: 'unknown' }).concat(hist);
+
     const today = new Date();
-    const bars   = padded.map((h, i) => {
+    const bars = padded.map((h, i) => {
       const col = statusColor(h.status);
-      // Calcola la data reale della barra: barra 0 = 89 giorni fa, barra 89 = oggi
       const barDate = new Date(today);
       barDate.setDate(barDate.getDate() - (89 - i));
       const barDateStr = barDate.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
