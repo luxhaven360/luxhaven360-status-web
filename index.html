@@ -808,6 +808,7 @@ const CONFIG = {
   refreshMs:     60_000,
   fastRefreshMs: 20_000,
   reportsUrl:    'https://reports.luxhaven360.com',
+  reportsApiUrl: 'https://reports-api.luxhaven360.com',
   cacheKey:      'lh360_status_v6',
   cacheTTL:      55_000,
 };
@@ -980,88 +981,17 @@ async function loadData() {
    Upptime crea le issue con label "status" (default).
    Vengono caricati anche i commenti per mostrare la timeline.
 ───────────────────────────────────────────────────── */
-// FIX 4: rate-limit temporaneo (5 minuti) invece di blocco permanente per tutta la sessione
-let _incidentsRateLimitedUntil = 0;
-
+// FIX 5: fetchIncidents passa per il Cloudflare Worker (autenticato, cached 2 min)
+// così non incappa mai nel rate limit anonimo di GitHub (60 req/ora per IP).
 async function fetchIncidents() {
-  if (Date.now() < _incidentsRateLimitedUntil) return [];
   try {
-    // FIX 3: label "status" invece di "incident"
     const r = await fetch(
-      `${API}/issues?state=all&labels=status&per_page=20&sort=created&direction=desc`,
-      { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' }
+      `${CONFIG.reportsApiUrl}/incidents`,
+      { cache: 'no-store' }
     );
-    if (r.status === 403 || r.status === 429) {
-      // Riprova tra 5 minuti invece di bloccare per tutta la sessione
-      _incidentsRateLimitedUntil = Date.now() + 5 * 60 * 1000;
-      return [];
-    }
     if (!r.ok) return [];
-    const issues = await r.json();
-
-    // FIX 4: carica commenti per le issue aperte (aggiornamenti incidente)
-    const incidents = await Promise.all(issues.map(async issue => {
-      let updates = [];
-
-      // Aggiornamento automatico di apertura
-      // Estrae il nome servizio dal titolo (es. "Protezione Accessi is down" → "Protezione Accessi")
-      const svcName = issue.title.replace(/\s+is\s+(down|degraded|up)$/i, '').trim();
-      updates.push({
-        time: issue.created_at,
-        text: `Stiamo investigando un problema rilevato su ${svcName}. Maggiori informazioni a breve.`,
-        label: 'Investigating',
-        type: 'open',
-      });
-
-      // Carica commenti solo se l'issue è aperta o chiusa di recente
-      if (issue.comments > 0) {
-        try {
-          const cr = await fetch(
-            `${API}/issues/${issue.number}/comments`,
-            { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' }
-          );
-          if (cr.ok) {
-            const comments = await cr.json();
-            comments.forEach(c => {
-              const body = c.body || '';
-              // Rileva il label dallo stato iniziale del commento (es. "Monitoring - ...")
-              const labelMatch = body.match(/^(Investigating|Identified|Monitoring|Update|Resolved|Fix|Note)\s*[-–:]/i);
-              const label = labelMatch ? labelMatch[1] : 'Update';
-              // Rimuove il prefisso del label dal testo del messaggio
-              const cleanText = labelMatch ? body.slice(labelMatch[0].length).trim() : body;
-              updates.push({ time: c.created_at, text: cleanText, label, type: 'comment' });
-            });
-          }
-        } catch {}
-      }
-
-      // Aggiornamento automatico di chiusura
-      if (issue.state === 'closed' && issue.closed_at) {
-        updates.push({
-          time: issue.closed_at,
-          text: "Il servizio è tornato operativo. L'incidente è stato risolto.",
-          label: 'Resolved',
-          type: 'resolved',
-        });
-      }
-
-      // Ordina per data
-      updates.sort((a, b) => new Date(a.time) - new Date(b.time));
-
-      return {
-        id:          issue.number,
-        title:       issue.title,
-        description: issue.body?.split('\n').slice(0, 4).join('\n') || '',
-        startTime:   issue.created_at,
-        closedAt:    issue.closed_at || null,
-        resolved:    issue.state === 'closed',
-        severity:    issue.labels?.some(l => l.name === 'critical') ? 'major' : 'minor',
-        labels:      (issue.labels || []).map(l => l.name),
-        updates,
-      };
-    }));
-
-    return incidents;
+    const data = await r.json();
+    return Array.isArray(data.incidents) ? data.incidents : [];
   } catch { return []; }
 }
 
