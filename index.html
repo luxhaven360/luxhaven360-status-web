@@ -33,6 +33,7 @@
       --yellow:      #E8B84B;
       --red:         #D95B5B;
       --blue:        #5B9BD9;
+      --orange:      #E8824A;
       --font-serif:  'Cormorant Garamond', Georgia, serif;
       --font-ui:     'Syne', sans-serif;
       --font-mono:   'DM Mono', 'Courier New', monospace;
@@ -503,7 +504,7 @@
     .update-label-investigating { color: var(--yellow); }
     .update-label-identified    { color: var(--red); }
     .update-label-monitoring    { color: var(--blue); }
-    .update-label-update        { color: var(--text-sub); }
+    .update-label-update        { color: var(--orange); }
     .update-label-resolved      { color: var(--green); }
     .update-label-fix           { color: var(--green); }
     .update-body {
@@ -1508,7 +1509,9 @@ function renderIncidents(incidents) {
     const updates = (inc.updates || []).map(u => {
       const rawLabel = u.label || (u.type === 'open' ? 'Investigating' : u.type === 'resolved' ? 'Resolved' : 'Update');
       const labelClass = rawLabel.toLowerCase();
-      const txt = (u.text || '').replace(/\n/g,'<br>');
+      const txt = (u.text || '')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g,'<br>');
       return `
         <div class="incident-update">
           <div class="update-label update-label-${labelClass}">${rawLabel}</div>
