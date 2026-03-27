@@ -482,23 +482,40 @@
       max-height: 0; overflow: hidden; transition: max-height 0.32s ease;
       padding: 0 1.6rem 0 1.85rem;
     }
-    .incident-item.open .incident-body-wrap { max-height: 500px; padding-bottom: 1.4rem; }
+    .incident-item.open .incident-body-wrap { max-height: 900px; padding-bottom: 1.4rem; }
     .incident-body {
       font-family: var(--font-ui); font-size: 0.76rem; color: var(--text-sub);
       line-height: 1.68; letter-spacing: 0.01em;
     }
-    .incident-updates { margin-top: 1rem; }
+    .incident-updates { margin-top: 0.75rem; }
     .incident-update {
-      display: flex; gap: 1.25rem; padding: 0.65rem 0;
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 0 1.25rem;
+      padding: 0.75rem 0;
       border-top: 1px solid var(--bg-line);
+      align-items: start;
     }
-    .update-time {
-      font-family: var(--font-mono); font-size: 0.6rem; color: var(--gold);
-      white-space: nowrap; padding-top: 2px; min-width: 84px;
+    .update-label {
+      font-family: var(--font-ui); font-size: 0.62rem; font-weight: 600;
+      letter-spacing: 0.04em; padding-top: 1px; white-space: nowrap;
+    }
+    .update-label-investigating { color: var(--yellow); }
+    .update-label-identified    { color: var(--red); }
+    .update-label-monitoring    { color: var(--blue); }
+    .update-label-update        { color: var(--text-sub); }
+    .update-label-resolved      { color: var(--green); }
+    .update-label-fix           { color: var(--green); }
+    .update-body {
+      display: flex; flex-direction: column; gap: 0.3rem;
     }
     .update-text {
-      font-family: var(--font-ui); font-size: 0.72rem; color: var(--text-sub);
-      line-height: 1.6;
+      font-family: var(--font-ui); font-size: 0.73rem; color: var(--text-sub);
+      line-height: 1.65; letter-spacing: 0.01em;
+    }
+    .update-time {
+      font-family: var(--font-mono); font-size: 0.57rem; color: var(--text-muted);
+      letter-spacing: 0.03em;
     }
     .incident-status-badge {
       font-family: var(--font-ui); font-size: 0.5rem; letter-spacing: 0.16em;
@@ -822,6 +839,14 @@ function statusColor(s) {
   if (s === 'down')     return RED;
   return 'rgba(255,255,255,0.09)';
 }
+
+/* ── Converte una Date in stringa YYYY-MM-DD locale (no timezone shift) ── */
+function toLocalDateStr(d) {
+  const dt = (d instanceof Date) ? d : new Date(d);
+  return dt.getFullYear() + '-'
+    + String(dt.getMonth() + 1).padStart(2, '0') + '-'
+    + String(dt.getDate()).padStart(2, '0');
+}
 function fmtDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleString('it-IT', {
@@ -955,10 +980,11 @@ async function loadData() {
    Upptime crea le issue con label "status" (default).
    Vengono caricati anche i commenti per mostrare la timeline.
 ───────────────────────────────────────────────────── */
-let _incidentsRateLimited = false;
+// FIX 4: rate-limit temporaneo (5 minuti) invece di blocco permanente per tutta la sessione
+let _incidentsRateLimitedUntil = 0;
 
 async function fetchIncidents() {
-  if (_incidentsRateLimited) return [];
+  if (Date.now() < _incidentsRateLimitedUntil) return [];
   try {
     // FIX 3: label "status" invece di "incident"
     const r = await fetch(
@@ -966,7 +992,8 @@ async function fetchIncidents() {
       { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' }
     );
     if (r.status === 403 || r.status === 429) {
-      _incidentsRateLimited = true;
+      // Riprova tra 5 minuti invece di bloccare per tutta la sessione
+      _incidentsRateLimitedUntil = Date.now() + 5 * 60 * 1000;
       return [];
     }
     if (!r.ok) return [];
@@ -977,9 +1004,12 @@ async function fetchIncidents() {
       let updates = [];
 
       // Aggiornamento automatico di apertura
+      // Estrae il nome servizio dal titolo (es. "Protezione Accessi is down" → "Protezione Accessi")
+      const svcName = issue.title.replace(/\s+is\s+(down|degraded|up)$/i, '').trim();
       updates.push({
         time: issue.created_at,
-        text: '🔴 Incidente rilevato automaticamente da Upptime.',
+        text: `Stiamo investigando un problema rilevato su ${svcName}. Maggiori informazioni a breve.`,
+        label: 'Investigating',
         type: 'open',
       });
 
@@ -993,7 +1023,13 @@ async function fetchIncidents() {
           if (cr.ok) {
             const comments = await cr.json();
             comments.forEach(c => {
-              updates.push({ time: c.created_at, text: c.body, type: 'comment' });
+              const body = c.body || '';
+              // Rileva il label dallo stato iniziale del commento (es. "Monitoring - ...")
+              const labelMatch = body.match(/^(Investigating|Identified|Monitoring|Update|Resolved|Fix|Note)\s*[-–:]/i);
+              const label = labelMatch ? labelMatch[1] : 'Update';
+              // Rimuove il prefisso del label dal testo del messaggio
+              const cleanText = labelMatch ? body.slice(labelMatch[0].length).trim() : body;
+              updates.push({ time: c.created_at, text: cleanText, label, type: 'comment' });
             });
           }
         } catch {}
@@ -1003,7 +1039,8 @@ async function fetchIncidents() {
       if (issue.state === 'closed' && issue.closed_at) {
         updates.push({
           time: issue.closed_at,
-          text: '✅ Servizio tornato operativo. Incidente risolto automaticamente da Upptime.',
+          text: 'Il servizio è tornato operativo. L'incidente è stato risolto.',
+          label: 'Resolved',
           type: 'resolved',
         });
       }
@@ -1114,7 +1151,8 @@ async function synthesizeFromGitHub() {
         const dayMap = {};
         for (const e of entries) {
           if (!e.startTime) continue;
-          const dayKey = new Date(e.startTime).toISOString().split('T')[0];
+          // FIX 2: usa data locale per evitare slittamento di fuso orario
+          const dayKey = toLocalDateStr(e.startTime);
           const st = (e.status === '200' || e.status === 'up') ? 'up'
                    : e.status === 'degraded' ? 'degraded' : 'down';
           // ── FIX 2: accumula responseTime per calcolare media giornaliera ──
@@ -1136,14 +1174,18 @@ async function synthesizeFromGitHub() {
         });
 
         const _today = new Date();
-        const todayKey = _today.toISOString().split('T')[0];
+        const todayKey = toLocalDateStr(_today);
         history = Array.from({ length: 90 }, (_, i) => {
           const d = new Date(_today);
           d.setDate(d.getDate() - (89 - i));
-          const key = d.toISOString().split('T')[0];
+          // FIX 2: data locale per non spostare i giorni per via del fuso orario
+          const key = toLocalDateStr(d);
           return dayMap[key] || { date: key, status: 'unknown', responseTime: null };
         });
-        if (status !== 'unknown') history[89] = { date: todayKey, status, responseTime: response !== '—' ? parseFloat(response) : null };
+        // FIX 2: sovrascrive solo se dayMap non aveva già un dato per oggi
+        if (status !== 'unknown' && (!dayMap[todayKey] || dayMap[todayKey].status === 'unknown')) {
+          history[89] = { date: todayKey, status, responseTime: response !== '—' ? parseFloat(response) : null };
+        }
       }
     } catch {}
     return { name: site.name, url: site.url, group: site.group || null, status, uptime, response, history };
@@ -1532,14 +1574,18 @@ function renderIncidents(incidents) {
       statBadge = '<span class="incident-status-badge badge-active">Attivo</span>';
     }
 
-    // FIX 4: timeline aggiornamenti con commenti reali dell'issue
+    // FIX 4: timeline aggiornamenti stile status.claude.com (label + testo + data)
     const updates = (inc.updates || []).map(u => {
-      const icon = u.type === 'open' ? '🔴' : u.type === 'resolved' ? '✅' : '💬';
-      const txt  = u.text || '';
+      const rawLabel = u.label || (u.type === 'open' ? 'Investigating' : u.type === 'resolved' ? 'Resolved' : 'Update');
+      const labelClass = rawLabel.toLowerCase();
+      const txt = (u.text || '').replace(/\n/g,'<br>');
       return `
         <div class="incident-update">
-          <span class="update-time">${fmtDateShort(u.time)}</span>
-          <span class="update-text">${txt.replace(/\n/g,'<br>')}</span>
+          <div class="update-label update-label-${labelClass}">${rawLabel}</div>
+          <div class="update-body">
+            <span class="update-text">${txt}</span>
+            <span class="update-time">${fmtDate(u.time)}</span>
+          </div>
         </div>`;
     }).join('');
 
@@ -1563,7 +1609,6 @@ function renderIncidents(incidents) {
           </div>
         </div>
         <div class="incident-body-wrap">
-          ${inc.description ? `<div class="incident-body">${inc.description.replace(/\n/g,'<br>')}</div>` : ''}
           ${updates ? `<div class="incident-updates">${updates}</div>` : ''}
           ${inc.resolved && inc.closedAt ? `
             <div style="margin-top:1rem;font-family:var(--font-ui);font-size:0.62rem;color:var(--text-muted);letter-spacing:0.06em">
