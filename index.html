@@ -830,7 +830,7 @@ async function synthesizeFromGitHub() {
     { name: 'CDN Assets',                url: 'https://cdn.luxhaven360.com',                                  group: 'infra' },
     { name: 'Reports API',               url: 'https://reports-api.luxhaven360.com/health',                   group: 'infra' },
     // ── Database & Realtime ─────────────────────────────────
-    { name: 'Database',                  url: 'https://tilxhlrwhqvmpxugvslw.supabase.co/auth/v1/health',       group: 'infra', slug: 'database' },
+    { name: 'Database',                  url: 'https://tilxhlrwhqvmpxugvslw.supabase.co/rest/v1/',             group: 'infra', slug: 'database' },
     // ── Dipendenze critiche esterne ─────────────────────────
     { name: 'API Cambio Valuta',         url: 'https://api.frankfurter.app/latest',                           group: 'deps', slug: 'api-cambio-valuta' },
     { name: 'Pagamenti Stripe',          url: 'https://checkout.stripe.com',                                  group: 'deps', slug: 'pagamenti-stripe' },
@@ -907,17 +907,24 @@ async function synthesizeFromGitHub() {
           const st = (e.status === '200' || e.status === 'up') ? 'up'
                    : e.status === 'degraded' ? 'degraded' : 'down';
           if (!dayMap[dayKey] || RANK[st] > RANK[dayMap[dayKey].status]) {
-            dayMap[dayKey] = { date: dayKey + 'T12:00:00Z', status: st };
+            dayMap[dayKey] = { date: dayKey, status: st };
           }
         }
         // Costruisce array esatto di 90 giorni: [89 giorni fa … oggi]
         const _today = new Date();
+        const todayKey = _today.toISOString().split('T')[0];
         history = Array.from({ length: 90 }, (_, i) => {
           const d = new Date(_today);
           d.setDate(d.getDate() - (89 - i));
           const key = d.toISOString().split('T')[0];
-          return dayMap[key] || { date: key + 'T12:00:00Z', status: 'unknown' };
+          return dayMap[key] || { date: key, status: 'unknown' };
         });
+        // Override barra di oggi con lo status live (l’ultimo ping reale).
+        // Upptime scrive i check con delay, quindi oggi sarebbe grigia
+        // finché non arriva il prossimo run GitHub Actions.
+        if (status !== 'unknown') {
+          history[89] = { date: todayKey, status };
+        }
       }
     } catch {}
     return { name: site.name, url: site.url, group: site.group || null, status, uptime, response, history };
@@ -1118,7 +1125,7 @@ function renderTimeline(services) {
       const barDate = new Date(today);
       barDate.setDate(barDate.getDate() - (89 - i));
       const barDateStr = barDate.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
-      const tip = h.date ? fmtDate(h.date) : barDateStr;
+      const tip = barDateStr;  // solo data, niente orario
       return `<div class="timeline-bar" style="background:${col}" data-tip="${tip}"></div>`;
     }).join('');
 
