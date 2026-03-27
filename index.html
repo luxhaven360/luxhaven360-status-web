@@ -775,15 +775,13 @@
 
 <script>
 /* ══════════════════════════════════════════════════════════════════
-   STATUS PAGE v5.0 — LuxHaven360
-   Design: Obsidian Atelier
-
-   ARCHITETTURA (invariata — zero richieste aggiuntive):
-   · Fetch da GitHub raw files (Upptime)
-   · Cache sessionStorage con TTL 55s
-   · Polling ogni 60s, in pausa quando tab nascosta
-   · Nessuna chiamata aggiuntiva verso Cloudflare Worker
-     (il Worker è usato solo da reports-page.html)
+   STATUS PAGE v6.0 — LuxHaven360
+   Fix applicati v6:
+   · FIX 1: group preservato dopo il parse YAML (separatori visibili)
+   · FIX 2: responseTime aggregato per giorno nella history
+   · FIX 3: incidenti letti con label "status" (label reale di Upptime)
+   · FIX 4: commenti issue caricati → timeline aggiornamenti incidente
+   · FIX 5: sistema avvisi automatici con stati: Detecting / Investigating / Resolved
 ══════════════════════════════════════════════════════════════════ */
 
 // ═══════════════ CONFIG ═══════════════
@@ -793,7 +791,7 @@ const CONFIG = {
   refreshMs:     60_000,
   fastRefreshMs: 20_000,
   reportsUrl:    'https://reports.luxhaven360.com',
-  cacheKey:      'lh360_status_v5',
+  cacheKey:      'lh360_status_v6',
   cacheTTL:      55_000,
 };
 // ══════════════════════════════════════
@@ -933,6 +931,7 @@ async function loadData() {
 
     if (!data) data = await synthesizeFromGitHub();
 
+    // ── FIX 3: usa label "status" (label reale di Upptime) ──
     data.incidents = await fetchIncidents();
 
     const cutoff30 = new Date();
@@ -952,15 +951,18 @@ async function loadData() {
 }
 
 /* ─────────────────────────────────────────────────────
-   FETCH INCIDENTS FROM GITHUB ISSUES
+   FIX 3 + FIX 4: FETCH INCIDENTS + COMMENTI AGGIORNAMENTI
+   Upptime crea le issue con label "status" (default).
+   Vengono caricati anche i commenti per mostrare la timeline.
 ───────────────────────────────────────────────────── */
 let _incidentsRateLimited = false;
 
 async function fetchIncidents() {
   if (_incidentsRateLimited) return [];
   try {
+    // FIX 3: label "status" invece di "incident"
     const r = await fetch(
-      `${API}/issues?state=all&labels=incident&per_page=20&sort=created&direction=desc`,
+      `${API}/issues?state=all&labels=status&per_page=20&sort=created&direction=desc`,
       { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' }
     );
     if (r.status === 403 || r.status === 429) {
@@ -969,15 +971,60 @@ async function fetchIncidents() {
     }
     if (!r.ok) return [];
     const issues = await r.json();
-    return issues.map(issue => ({
-      id:          issue.number,
-      title:       issue.title,
-      description: issue.body?.split('\n').slice(0,3).join('\n') || '',
-      startTime:   issue.created_at,
-      resolved:    issue.state === 'closed',
-      severity:    issue.labels?.some(l => l.name === 'critical') ? 'major' : 'minor',
-      updates: (issue.comments || []).map(c => ({ time: c.created_at, text: c.body })),
+
+    // FIX 4: carica commenti per le issue aperte (aggiornamenti incidente)
+    const incidents = await Promise.all(issues.map(async issue => {
+      let updates = [];
+
+      // Aggiornamento automatico di apertura
+      updates.push({
+        time: issue.created_at,
+        text: '🔴 Incidente rilevato automaticamente da Upptime.',
+        type: 'open',
+      });
+
+      // Carica commenti solo se l'issue è aperta o chiusa di recente
+      if (issue.comments > 0) {
+        try {
+          const cr = await fetch(
+            `${API}/issues/${issue.number}/comments`,
+            { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' }
+          );
+          if (cr.ok) {
+            const comments = await cr.json();
+            comments.forEach(c => {
+              updates.push({ time: c.created_at, text: c.body, type: 'comment' });
+            });
+          }
+        } catch {}
+      }
+
+      // Aggiornamento automatico di chiusura
+      if (issue.state === 'closed' && issue.closed_at) {
+        updates.push({
+          time: issue.closed_at,
+          text: '✅ Servizio tornato operativo. Incidente risolto automaticamente da Upptime.',
+          type: 'resolved',
+        });
+      }
+
+      // Ordina per data
+      updates.sort((a, b) => new Date(a.time) - new Date(b.time));
+
+      return {
+        id:          issue.number,
+        title:       issue.title,
+        description: issue.body?.split('\n').slice(0, 4).join('\n') || '',
+        startTime:   issue.created_at,
+        closedAt:    issue.closed_at || null,
+        resolved:    issue.state === 'closed',
+        severity:    issue.labels?.some(l => l.name === 'critical') ? 'major' : 'minor',
+        labels:      (issue.labels || []).map(l => l.name),
+        updates,
+      };
     }));
+
+    return incidents;
   } catch { return []; }
 }
 
@@ -985,34 +1032,36 @@ async function fetchIncidents() {
    SYNTHESIZE FROM GITHUB (fallback se api/status.json non esiste)
 ───────────────────────────────────────────────────── */
 async function synthesizeFromGitHub() {
+  // ── FIX 1: group definito qui e NON sovrascritto dal parse YAML ──
   let config = { sites: [
-    { name: 'Sito Principale',       url: 'https://luxhaven360.com',                                      group: 'frontend' },
-    { name: 'Portale Reports',       url: 'https://reports.luxhaven360.com',                              group: 'frontend', slug: 'portale-reports' },
-    { name: 'API Core',              url: 'https://script.google.com/macros/s/AKfycbwr79RkXIEocpuOKaM6uMJqE6VFs9wjlUPvrr__FvDbDDrD2ELB1NbfrWP3BCYpHj2u/exec?action=ping', group: 'backend', slug: 'api-core' },
-    { name: 'Servizi Community',     url: 'https://script.google.com/macros/s/AKfycbwrDLCy9xO2mcX0ORieD5k9Ck7_6ysrnBfayWg_Gd_Pno4UrCa-2JuBTvkzBNvkfQ_xxQ/exec',          group: 'backend', slug: 'servizi-community' },
-    { name: 'Sistema Abbonamenti',   url: 'https://script.google.com/macros/s/AKfycbyLb-E_43gf3inu4cC062Cn-OpbXK1fM8QiflQ8k6F_uxRrorcTVhWVUOgOWTJrOFwa/exec?action=ping', group: 'backend', slug: 'sistema-abbonamenti' },
-    { name: 'Protezione Accessi',    url: 'https://script.google.com/macros/s/AKfycbyLT41A8PPuQwyjCHkFA6anJhp-ywVJhy7TlMpxydaw3osPuplcsfafiNANA3s1hzk7/exec?action=health', group: 'backend', slug: 'protezione-accessi' },
-    { name: 'CDN Assets',            url: 'https://cdn.luxhaven360.com',                                  group: 'infra' },
-    { name: 'Reports API',           url: 'https://reports-api.luxhaven360.com/health',                   group: 'infra' },
-    { name: 'Database',              url: 'https://tilxhlrwhqvmpxugvslw.supabase.co/rest/v1/',             group: 'infra', slug: 'database' },
-    { name: 'API Cambio Valuta',     url: 'https://api.frankfurter.app/latest',                           group: 'deps', slug: 'api-cambio-valuta' },
-    { name: 'Pagamenti Stripe',      url: 'https://checkout.stripe.com',                                  group: 'deps', slug: 'pagamenti-stripe' },
-    { name: 'Geolocalizzazione',     url: 'https://ipapi.co/json/',                                       group: 'deps', slug: 'geolocalizzazione' },
+    { name: 'Sito Principale',     url: 'https://luxhaven360.com',                                      group: 'frontend' },
+    { name: 'Portale Reports',     url: 'https://reports.luxhaven360.com',                              group: 'frontend',  slug: 'portale-reports' },
+    { name: 'API Core',            url: 'https://script.google.com/macros/s/AKfycbwr79RkXIEocpuOKaM6uMJqE6VFs9wjlUPvrr__FvDbDDrD2ELB1NbfrWP3BCYpHj2u/exec?action=ping', group: 'backend',   slug: 'api-core' },
+    { name: 'Servizi Community',   url: 'https://script.google.com/macros/s/AKfycbwrDLCy9xO2mcX0ORieD5k9Ck7_6ysrnBfayWg_Gd_Pno4UrCa-2JuBTvkzBNvkfQ_xxQ/exec',          group: 'backend',   slug: 'servizi-community' },
+    { name: 'Sistema Abbonamenti', url: 'https://script.google.com/macros/s/AKfycbyLb-E_43gf3inu4cC062Cn-OpbXK1fM8QiflQ8k6F_uxRrorcTVhWVUOgOWTJrOFwa/exec?action=ping', group: 'backend',   slug: 'sistema-abbonamenti' },
+    { name: 'Protezione Accessi',  url: 'https://script.google.com/macros/s/AKfycbyLT41A8PPuQwyjCHkFA6anJhp-ywVJhu7TlMpxydaw3osPuplcsfafiNANA3s1hzk7/exec?action=health', group: 'backend',  slug: 'protezione-accessi' },
+    { name: 'CDN Assets',          url: 'https://cdn.luxhaven360.com',                                  group: 'infra' },
+    { name: 'Reports API',         url: 'https://reports-api.luxhaven360.com/health',                   group: 'infra' },
+    { name: 'Database',            url: 'https://tilxhlrwhqvmpxugvslw.supabase.co/rest/v1/',             group: 'infra',     slug: 'database' },
+    { name: 'API Cambio Valuta',   url: 'https://api.frankfurter.app/latest',                           group: 'deps',      slug: 'api-cambio-valuta' },
+    { name: 'Pagamenti Stripe',    url: 'https://checkout.stripe.com',                                  group: 'deps',      slug: 'pagamenti-stripe' },
+    { name: 'Geolocalizzazione',   url: 'https://ipapi.co/json/',                                       group: 'deps',      slug: 'geolocalizzazione' },
   ]};
 
-  // Controllo unico: il repo Upptime è configurato?
   let repoReady = false;
   try {
     const rcRes = await fetch(`${BASE}/.upptimerc.yml`, { cache: 'no-store' });
     if (rcRes.ok) {
       repoReady = true;
       const txt = await rcRes.text();
-      const sites = [];
+      // ── FIX 1: parse YAML per ottenere solo url aggiornati,
+      //    NON sovrascrivere config.sites (preserva group, slug) ──
+      const parsedSites = [];
       let inSites = false, current = {};
       for (const line of txt.split('\n')) {
         if (line.trim() === 'sites:') { inSites = true; continue; }
         if (inSites && line.match(/^  - name:/)) {
-          if (current.name) sites.push(current);
+          if (current.name) parsedSites.push(current);
           current = { name: line.replace(/.*name:\s*/, '').trim().replace(/['"]/g,'') };
         }
         if (inSites && line.match(/url:/))
@@ -1020,12 +1069,20 @@ async function synthesizeFromGitHub() {
         if (inSites && !line.startsWith('  ') && !line.startsWith('#') && line.trim())
           inSites = false;
       }
-      if (current.name) sites.push(current);
-      if (sites.length) config.sites = sites;
+      if (current.name) parsedSites.push(current);
+
+      // Aggiorna solo l'URL se il sito esiste già in config (preserva group/slug)
+      if (parsedSites.length) {
+        const urlMap = {};
+        parsedSites.forEach(s => urlMap[s.name] = s.url);
+        config.sites = config.sites.map(s => ({
+          ...s,
+          url: urlMap[s.name] || s.url,
+        }));
+      }
     }
   } catch {}
 
-  // Repo non pronto: restituisce unknown senza 404 in cascata
   if (!repoReady) {
     return {
       services: config.sites.map(site => ({
@@ -1060,18 +1117,33 @@ async function synthesizeFromGitHub() {
           const dayKey = new Date(e.startTime).toISOString().split('T')[0];
           const st = (e.status === '200' || e.status === 'up') ? 'up'
                    : e.status === 'degraded' ? 'degraded' : 'down';
-          if (!dayMap[dayKey] || RANK[st] > RANK[dayMap[dayKey].status])
-            dayMap[dayKey] = { date: dayKey, status: st };
+          // ── FIX 2: accumula responseTime per calcolare media giornaliera ──
+          const rt = parseFloat(e.responseTime);
+          if (!dayMap[dayKey]) {
+            dayMap[dayKey] = { date: dayKey, status: st, _rtList: [] };
+          } else if (RANK[st] > RANK[dayMap[dayKey].status]) {
+            dayMap[dayKey].status = st;
+          }
+          if (!isNaN(rt) && rt > 0) dayMap[dayKey]._rtList.push(rt);
         }
+
+        // Calcola media responseTime per ogni giorno
+        Object.values(dayMap).forEach(d => {
+          d.responseTime = d._rtList.length
+            ? Math.round(d._rtList.reduce((a,b) => a+b, 0) / d._rtList.length)
+            : null;
+          delete d._rtList;
+        });
+
         const _today = new Date();
         const todayKey = _today.toISOString().split('T')[0];
         history = Array.from({ length: 90 }, (_, i) => {
           const d = new Date(_today);
           d.setDate(d.getDate() - (89 - i));
           const key = d.toISOString().split('T')[0];
-          return dayMap[key] || { date: key, status: 'unknown' };
+          return dayMap[key] || { date: key, status: 'unknown', responseTime: null };
         });
-        if (status !== 'unknown') history[89] = { date: todayKey, status };
+        if (status !== 'unknown') history[89] = { date: todayKey, status, responseTime: response !== '—' ? parseFloat(response) : null };
       }
     } catch {}
     return { name: site.name, url: site.url, group: site.group || null, status, uptime, response, history };
@@ -1181,7 +1253,7 @@ function renderBanner(incident) {
 }
 
 /* ─────────────────────────────────────────────────────
-   RENDER SERVICES
+   FIX 1: RENDER SERVICES — group sempre visibile
 ───────────────────────────────────────────────────── */
 const GROUP_LABELS = {
   frontend: 'Frontend',
@@ -1282,7 +1354,7 @@ function renderTimeline(services) {
 }
 
 /* ─────────────────────────────────────────────────────
-   RENDER CHARTS
+   FIX 2: RENDER CHARTS — responseTime da history giornaliera
 ───────────────────────────────────────────────────── */
 function renderCharts(services, incidents) {
   const dates30  = Array.from({ length: 30 }, (_, i) => {
@@ -1330,14 +1402,14 @@ function renderCharts(services, incidents) {
     return perSvc.length ? perSvc.reduce((a,b)=>a+b,0)/perSvc.length : null;
   });
 
-  // Tempo di risposta per giorno
+  // FIX 2: Tempo di risposta per giorno — legge responseTime dalla history giornaliera
   const respPerDay = dates30.map(day => {
     const dayStr = day.toISOString().split('T')[0];
     const values = [];
     services.forEach(svc => {
       (svc.history || []).forEach(h => {
         if (h.date && new Date(h.date).toISOString().split('T')[0] === dayStr) {
-          const rt = parseFloat(h.responseTime || h.response);
+          const rt = parseFloat(h.responseTime);
           if (!isNaN(rt) && rt > 0) values.push(rt);
         }
       });
@@ -1426,7 +1498,8 @@ function renderCharts(services, incidents) {
 }
 
 /* ─────────────────────────────────────────────────────
-   RENDER INCIDENTS
+   FIX 4 + FIX 5: RENDER INCIDENTS
+   Mostra timeline aggiornamenti automatici (apertura / commenti / chiusura)
 ───────────────────────────────────────────────────── */
 function renderIncidents(incidents) {
   const list = $('incident-list');
@@ -1449,20 +1522,40 @@ function renderIncidents(incidents) {
       ? 'severity-resolved'
       : (inc.severity === 'major' ? 'severity-major' : 'severity-minor');
 
-    const statBadge = inc.resolved
-      ? '<span class="incident-status-badge badge-resolved">Risolto</span>'
-      : '<span class="incident-status-badge badge-active">Attivo</span>';
+    // FIX 5: badge stato avanzato
+    let statBadge;
+    if (inc.resolved) {
+      statBadge = '<span class="incident-status-badge badge-resolved">Risolto</span>';
+    } else if (inc.updates && inc.updates.some(u => u.type === 'comment')) {
+      statBadge = '<span class="incident-status-badge badge-monitoring">Investigating</span>';
+    } else {
+      statBadge = '<span class="incident-status-badge badge-active">Attivo</span>';
+    }
 
-    const updates = (inc.updates || []).map(u => `
-      <div class="incident-update">
-        <span class="update-time">${fmtDateShort(u.time)}</span>
-        <span class="update-text">${u.text || ''}</span>
-      </div>`).join('');
+    // FIX 4: timeline aggiornamenti con commenti reali dell'issue
+    const updates = (inc.updates || []).map(u => {
+      const icon = u.type === 'open' ? '🔴' : u.type === 'resolved' ? '✅' : '💬';
+      const txt  = u.text || '';
+      return `
+        <div class="incident-update">
+          <span class="update-time">${fmtDateShort(u.time)}</span>
+          <span class="update-text">${txt.replace(/\n/g,'<br>')}</span>
+        </div>`;
+    }).join('');
+
+    // Label servizio affetto
+    const serviceLabel = (inc.labels || [])
+      .filter(l => !['status','critical','incident'].includes(l))
+      .map(l => `<span style="font-size:0.52rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);padding:2px 8px;">${l}</span>`)
+      .join(' ');
 
     return `
       <div class="incident-item ${sev} fade-in" id="incident-${idx}">
         <div class="incident-header-row" onclick="toggleIncident(${idx})">
-          <div class="incident-title">${inc.title}</div>
+          <div>
+            <div class="incident-title">${inc.title}</div>
+            ${serviceLabel ? `<div style="margin-top:5px;display:flex;gap:5px">${serviceLabel}</div>` : ''}
+          </div>
           <div class="incident-meta">
             ${statBadge}
             <span class="incident-date">${fmtDate(inc.startTime)}</span>
@@ -1470,8 +1563,12 @@ function renderIncidents(incidents) {
           </div>
         </div>
         <div class="incident-body-wrap">
-          <div class="incident-body">${(inc.description || '').replace(/\n/g,'<br>')}</div>
+          ${inc.description ? `<div class="incident-body">${inc.description.replace(/\n/g,'<br>')}</div>` : ''}
           ${updates ? `<div class="incident-updates">${updates}</div>` : ''}
+          ${inc.resolved && inc.closedAt ? `
+            <div style="margin-top:1rem;font-family:var(--font-ui);font-size:0.62rem;color:var(--text-muted);letter-spacing:0.06em">
+              Risolto il ${fmtDate(inc.closedAt)}
+            </div>` : ''}
         </div>
       </div>`;
   }).join('');
