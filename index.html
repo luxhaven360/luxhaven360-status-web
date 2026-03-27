@@ -5,34 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Status — LuxHaven360</title>
   <meta name="description" content="Stato in tempo reale dei servizi LuxHaven360" />
-  <!-- Favicon inline SVG — evita 404 -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%230A0A0F'/><path d='M8 1L10 6H15L11 9.5L12.5 14.5L8 11.5L3.5 14.5L5 9.5L1 6H6L8 1Z' fill='%23C9A96E'/></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%2307070C'/><path d='M8 1L10 6H15L11 9.5L12.5 14.5L8 11.5L3.5 14.5L5 9.5L1 6H6L8 1Z' fill='%23C9A96E'/></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Syne:wght@400;500;600&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <style>
     /* ═══════════════════════════════════════════
-       TOKENS — modifica solo questi valori
+       DESIGN TOKENS
     ═══════════════════════════════════════════ */
     :root {
-      --gold:       #C9A96E;
-      --gold-light: #E8D5A3;
-      --gold-dim:   rgba(201,169,110,0.15);
-      --gold-glow:  rgba(201,169,110,0.08);
-      --bg:         #0A0A0F;
-      --bg-card:    #0F0F17;
-      --bg-card2:   #111119;
-      --bg-border:  rgba(201,169,110,0.12);
-      --text:       #E8E2D9;
-      --text-dim:   rgba(232,226,217,0.45);
-      --green:      #4CAF7D;
-      --yellow:     #E8B84B;
-      --red:        #D95B5B;
-      --blue:       #5B9BD9;
-      --font-serif: 'Cormorant Garamond', Georgia, serif;
-      --font-sans:  'Jost', sans-serif;
+      --gold:        #C9A96E;
+      --gold-bright: #DDB97E;
+      --gold-dim:    rgba(201,169,110,0.11);
+      --gold-glow:   rgba(201,169,110,0.05);
+      --bg:          #07070C;
+      --bg-surface:  #0C0C15;
+      --bg-card:     #0F0F1B;
+      --bg-card-2:   #131322;
+      --bg-border:   rgba(201,169,110,0.09);
+      --bg-line:     rgba(255,255,255,0.045);
+      --text:        #EDE8E0;
+      --text-sub:    rgba(237,232,224,0.52);
+      --text-muted:  rgba(237,232,224,0.27);
+      --green:       #4CAF7D;
+      --yellow:      #E8B84B;
+      --red:         #D95B5B;
+      --blue:        #5B9BD9;
+      --font-serif:  'Cormorant Garamond', Georgia, serif;
+      --font-ui:     'Syne', sans-serif;
+      --font-mono:   'DM Mono', 'Courier New', monospace;
+      --max-w:       1080px;
+      --gutter:      clamp(1.5rem, 5vw, 4rem);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -41,406 +46,549 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: var(--font-sans);
-      font-weight: 300;
+      font-family: var(--font-ui);
+      font-weight: 400;
       min-height: 100vh;
       overflow-x: hidden;
     }
 
-    /* Noise overlay */
+    /* Subtle grain texture */
     body::before {
       content: '';
       position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-      pointer-events: none; z-index: 0; opacity: 0.4;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 0; opacity: 0.55;
     }
 
-    /* ── INCIDENT BANNER (nascosta di default) ── */
+    /* ══ INCIDENT BANNER ══ */
     #incident-banner {
       display: none;
       position: sticky; top: 0; z-index: 200;
-      background: rgba(217,91,91,0.12);
-      border-bottom: 1px solid rgba(217,91,91,0.3);
-      padding: 0.75rem clamp(1.5rem,5vw,4rem);
-      backdrop-filter: blur(12px);
+      background: rgba(217,91,91,0.07);
+      border-bottom: 1px solid rgba(217,91,91,0.22);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
     }
     #incident-banner.show { display: block; }
     #incident-banner.maintenance {
-      background: rgba(232,184,75,0.1);
-      border-bottom-color: rgba(232,184,75,0.3);
+      background: rgba(232,184,75,0.07);
+      border-bottom-color: rgba(232,184,75,0.22);
     }
     .banner-inner {
-      max-width: 1100px; margin: 0 auto;
-      display: flex; align-items: center; gap: 1rem;
+      max-width: var(--max-w); margin: 0 auto;
+      display: flex; align-items: center; gap: 0.85rem;
+      padding: 0.65rem var(--gutter);
     }
     .banner-dot {
-      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-      background: var(--red); animation: pulse 1.5s ease-in-out infinite;
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+      background: var(--red); animation: pulseGlow 1.6s ease-in-out infinite;
     }
     #incident-banner.maintenance .banner-dot { background: var(--yellow); }
-    .banner-text { font-size: 0.78rem; letter-spacing: 0.04em; flex: 1; }
-    .banner-text strong { color: var(--text); }
-    .banner-text span { color: var(--text-dim); }
-    .banner-link {
-      font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--gold); text-decoration: none; white-space: nowrap;
-      flex-shrink: 0;
+    .banner-text {
+      font-family: var(--font-ui); font-size: 0.7rem; letter-spacing: 0.04em; flex: 1;
     }
+    .banner-text strong { color: var(--text); font-weight: 500; }
+    .banner-text span { color: var(--text-sub); }
+    .banner-link {
+      font-family: var(--font-ui); font-size: 0.6rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--gold); text-decoration: none;
+      white-space: nowrap; flex-shrink: 0; opacity: 0.85;
+      transition: opacity 0.2s;
+    }
+    .banner-link:hover { opacity: 1; }
 
-    /* ── HEADER ── */
+    /* ══ HEADER ══ */
     header {
       position: sticky; top: 0; z-index: 100;
       border-bottom: 1px solid var(--bg-border);
-      background: rgba(10,10,15,0.88);
-      backdrop-filter: blur(20px);
-      padding: 0 clamp(1.5rem,5vw,4rem) 0 clamp(0.5rem,2vw,1.5rem);
-      transition: top 0.2s;
+      background: rgba(7,7,12,0.92);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
     }
     .header-inner {
-      max-width: 1100px; margin: 0 auto;
+      max-width: var(--max-w); margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between;
-      height: 80px;
+      height: 72px; padding: 0 var(--gutter);
+      position: relative;
     }
     .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-    .brand-logo {
-      height: 76px;
-      width: auto;
-      display: block;
-      /* Fallback se l'immagine non carica: mostra il testo brand */
-      object-fit: contain;
-    }
-    /* Nasconde il testo di fallback quando il logo carica correttamente */
+    .brand-logo { height: 66px; width: auto; display: block; object-fit: contain; }
     .brand-logo-loaded + .brand-name { display: none; }
     .brand-name {
-      font-family: var(--font-serif); font-size: 1.1rem; font-weight: 400;
-      letter-spacing: 0.12em; color: var(--text); text-transform: uppercase;
+      font-family: var(--font-serif); font-size: 1rem; font-weight: 400;
+      letter-spacing: 0.18em; color: var(--text); text-transform: uppercase;
     }
-    .header-nav { display: flex; gap: 2rem; align-items: center; }
+    .header-nav { display: flex; gap: 2.5rem; align-items: center; }
     .header-nav a {
-      font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase;
-      color: var(--text-dim); text-decoration: none; transition: color 0.2s;
+      font-family: var(--font-ui); font-size: 0.62rem; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--text-sub); text-decoration: none;
+      transition: color 0.2s;
     }
     .header-nav a:hover, .header-nav a.active { color: var(--gold); }
 
-    /* ── LIVE BADGE ── */
     .live-badge {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--text-dim); cursor: default;
+      display: flex; align-items: center; gap: 7px;
+      font-family: var(--font-ui); font-size: 0.58rem; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--text-muted);
     }
     .live-dot {
       width: 6px; height: 6px; border-radius: 50%;
       background: var(--green);
-      animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(76,175,125,0.4); }
-      50%      { opacity:.7; box-shadow: 0 0 0 4px rgba(76,175,125,0); }
+      animation: pulseGlow 2.8s ease-in-out infinite;
     }
 
-    /* ── REFRESH PROGRESS BAR ── */
+    @keyframes pulseGlow {
+      0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(76,175,125,0.4); }
+      50%      { opacity: 0.6; box-shadow: 0 0 0 5px rgba(76,175,125,0); }
+    }
+
     #refresh-bar {
       position: absolute; bottom: 0; left: 0;
       height: 1px; background: var(--gold);
-      transition: width 1s linear;
-      opacity: 0.5;
+      transition: width 1s linear; opacity: 0.35;
     }
 
-    /* ── MAIN ── */
+    /* ══ MAIN ══ */
     main {
-      max-width: 1100px; margin: 0 auto;
-      padding: clamp(2rem,6vw,5rem) clamp(1.5rem,5vw,4rem);
+      max-width: var(--max-w); margin: 0 auto;
+      padding: clamp(2.5rem, 6vw, 5rem) var(--gutter);
       position: relative; z-index: 1;
     }
 
-    /* ── HERO ── */
+    /* ══ HERO ══ */
     .hero {
       text-align: center;
-      padding: 3rem 0 4rem;
+      padding-bottom: 4.5rem;
       border-bottom: 1px solid var(--bg-border);
-      margin-bottom: 3.5rem;
+      margin-bottom: 4.5rem;
+      position: relative;
     }
+
+    /* Ambient radial glow behind hero */
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: 50%; transform: translateX(-50%);
+      width: 700px; height: 480px;
+      background: radial-gradient(ellipse at 50% 10%,
+        rgba(201,169,110,0.065) 0%,
+        rgba(201,169,110,0.02) 35%,
+        transparent 65%);
+      pointer-events: none;
+    }
+
     .hero-eyebrow {
-      font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase;
-      color: var(--gold); margin-bottom: 1.5rem;
+      font-family: var(--font-ui); font-size: 0.58rem; letter-spacing: 0.30em;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 2.75rem;
+      position: relative;
     }
+
+    /* Decorative lines on either side of eyebrow */
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      display: inline-block; vertical-align: middle;
+      width: 2.5rem; height: 1px;
+      background: var(--gold-dim); margin: 0 1.25rem;
+    }
+
     .hero-status-icon {
-      width: 72px; height: 72px; margin: 0 auto 1.5rem;
-      border: 1px solid var(--bg-border); border-radius: 50%;
+      width: 92px; height: 92px; margin: 0 auto 2.25rem;
+      border-radius: 50%;
+      border: 1px solid var(--bg-border);
+      background: var(--bg-card);
       display: flex; align-items: center; justify-content: center;
-      position: relative; transition: border-color 0.4s;
+      position: relative;
     }
     .hero-status-icon::before {
       content: '';
-      position: absolute; inset: -8px; border-radius: 50%;
-      border: 1px solid var(--gold-dim); transition: border-color 0.4s;
+      position: absolute; inset: -13px; border-radius: 50%;
+      border: 1px solid var(--gold-dim);
+      animation: ringBreath 4.5s ease-in-out infinite;
     }
-    .hero-status-icon svg { width: 28px; height: 28px; }
+    .hero-status-icon::after {
+      content: '';
+      position: absolute; inset: -28px; border-radius: 50%;
+      border: 1px solid rgba(201,169,110,0.03);
+      animation: ringBreath 4.5s ease-in-out infinite 1s;
+    }
+    @keyframes ringBreath {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.25; transform: scale(1.04); }
+    }
+    #hero-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px;
+    }
+    .hero-status-icon svg { width: 36px; height: 36px; }
+
     .hero-title {
-      font-family: var(--font-serif); font-size: clamp(2rem,5vw,3.5rem);
-      font-weight: 300; line-height: 1.1; margin-bottom: 0.75rem;
+      font-family: var(--font-serif); font-size: clamp(2.6rem, 5.8vw, 4.4rem);
+      font-weight: 300; line-height: 1.05; letter-spacing: 0.01em;
+      margin-bottom: 1rem; position: relative;
     }
     .hero-title em { font-style: italic; color: var(--gold); }
+
     .hero-subtitle {
-      font-size: 0.8rem; letter-spacing: 0.06em;
-      color: var(--text-dim); margin-bottom: 2rem;
+      font-family: var(--font-ui); font-size: 0.7rem; letter-spacing: 0.09em;
+      color: var(--text-sub); margin-bottom: 3rem; line-height: 1.65;
     }
-    .hero-meta { display: flex; justify-content: center; gap: 3rem; flex-wrap: wrap; }
-    .hero-stat { text-align: center; }
+
+    /* Metrics panel — bordered row of 3 stats */
+    .hero-meta {
+      display: inline-flex;
+      border: 1px solid var(--bg-border);
+      background: var(--bg-card);
+      margin-bottom: 2.25rem;
+    }
+    .hero-stat {
+      text-align: center; padding: 1.35rem 2.2rem;
+      border-right: 1px solid var(--bg-border);
+    }
+    .hero-stat:last-child { border-right: none; }
     .hero-stat-value {
-      font-family: var(--font-serif); font-size: 2rem; font-weight: 300;
-      color: var(--gold); display: block;
+      font-family: var(--font-mono); font-size: 1.45rem; font-weight: 300;
+      color: var(--gold); display: block; margin-bottom: 0.4rem;
+      letter-spacing: -0.01em; line-height: 1;
     }
     .hero-stat-label {
-      font-size: 0.65rem; letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--text-dim);
+      font-family: var(--font-ui); font-size: 0.52rem; letter-spacing: 0.20em;
+      text-transform: uppercase; color: var(--text-muted); white-space: nowrap;
     }
 
-    /* ── REFRESH INDICATOR ── */
     .refresh-info {
       display: flex; align-items: center; justify-content: center;
-      gap: 1.5rem; margin-top: 1.75rem;
-      flex-wrap: wrap;
+      gap: 2.5rem; flex-wrap: wrap;
     }
     .refresh-item {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 0.65rem; letter-spacing: 0.08em; color: var(--text-dim);
+      display: flex; align-items: center; gap: 5px;
+      font-family: var(--font-ui); font-size: 0.58rem; letter-spacing: 0.1em;
+      color: var(--text-muted);
     }
     .refresh-countdown {
-      font-variant-numeric: tabular-nums;
-      color: var(--gold-light); min-width: 3ch;
+      font-family: var(--font-mono); font-size: 0.62rem;
+      color: var(--text-sub); min-width: 3ch; font-variant-numeric: tabular-nums;
     }
-    /* Flash effect when data updates */
+
     @keyframes dataFlash {
-      0%   { background: rgba(201,169,110,0.12); }
+      0%   { background: rgba(201,169,110,0.07); }
       100% { background: transparent; }
     }
-    .data-flash { animation: dataFlash 0.6s ease-out; }
+    .data-flash { animation: dataFlash 0.55s ease-out; }
 
-    /* ── SECTION HEADERS ── */
+    /* ══ SECTION HEADERS ══ */
     .section-header {
-      display: flex; align-items: baseline; justify-content: space-between;
-      margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 1.5rem;
+      margin-bottom: 2rem;
     }
-    .section-title { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 400; }
+    .section-title {
+      font-family: var(--font-serif); font-size: 1.3rem; font-weight: 400;
+      letter-spacing: 0.02em; white-space: nowrap; flex-shrink: 0;
+    }
+    .section-rule {
+      flex: 1; height: 1px;
+      background: linear-gradient(to right, var(--bg-border), transparent);
+    }
     .section-tag {
-      font-size: 0.65rem; letter-spacing: 0.14em;
-      text-transform: uppercase; color: var(--text-dim);
+      font-family: var(--font-ui); font-size: 0.55rem; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--text-muted); white-space: nowrap;
+      flex-shrink: 0;
     }
 
-    /* ── SERVICES ── */
+    /* ══ SERVICES ══ */
     .services-grid {
-      display: grid; gap: 1px;
-      background: var(--bg-border);
-      border: 1px solid var(--bg-border);
-      margin-bottom: 3.5rem;
-    }
-    /* Separatori di gruppo */
-    .service-group-header {
-      background: rgba(201,169,110,0.04);
-      padding: 0.55rem 1.5rem;
-      font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase;
-      color: var(--gold); border-bottom: 1px solid var(--bg-border);
-      display: flex; align-items: center; gap: 0.75rem;
-    }
-    .service-group-header::after {
-      content: ''; flex: 1; height: 1px; background: var(--bg-border);
-    }
-    .service-row {
       background: var(--bg-card);
-      display: flex; align-items: center; padding: 1.25rem 1.5rem; gap: 1rem;
-      transition: background 0.2s;
+      border: 1px solid var(--bg-border);
+      margin-bottom: 4.5rem;
+      overflow: hidden;
     }
-    .service-row:hover { background: rgba(201,169,110,0.04); }
-    .service-indicator { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: background 0.4s; }
-    .service-info { flex: 1; min-width: 0; }
-    .service-name { font-size: 0.85rem; font-weight: 400; letter-spacing: 0.04em; margin-bottom: 3px; }
-    .service-url  { font-size: 0.7rem; color: var(--text-dim); }
-    .service-bars { display: flex; gap: 2px; align-items: flex-end; flex-shrink: 0; }
-    .bar { width: 4px; border-radius: 1px; transition: opacity 0.2s; }
-    .service-response {
-      font-size: 0.68rem; color: var(--text-dim);
-      letter-spacing: 0.04em; text-align: right; flex-shrink: 0;
-      min-width: 56px;
-    }
-    .service-response strong { display: block; font-size: 0.8rem; color: var(--text); font-weight: 400; }
-    .service-uptime { text-align: right; flex-shrink: 0; }
-    .uptime-value { font-family: var(--font-serif); font-size: 1.1rem; font-weight: 400; display: block; }
-    .uptime-label { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
-    .service-status-badge {
-      font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase;
-      padding: 3px 10px; border: 1px solid; flex-shrink: 0;
-    }
-    .status-up { background: var(--green); }
-    .status-degraded { background: var(--yellow); }
-    .status-down { background: var(--red); }
-    .status-unknown { background: rgba(255,255,255,0.15); }
-    .badge-up       { color: var(--green);  border-color: rgba(76,175,125,0.3); }
-    .badge-degraded { color: var(--yellow); border-color: rgba(232,184,75,0.3); }
-    .badge-down     { color: var(--red);    border-color: rgba(217,91,91,0.3); }
-    .badge-unknown  { color: var(--text-dim); border-color: rgba(232,226,217,0.15); }
 
-    /* ── TIMELINE ── */
-    .timeline-section { margin-bottom: 3.5rem; }
-    .timeline-service { margin-bottom: 1.5rem; }
-    .timeline-label {
-      font-size: 0.72rem; letter-spacing: 0.06em; margin-bottom: 0.5rem;
-      display: flex; justify-content: space-between; align-items: center;
+    .service-group-header {
+      background: rgba(201,169,110,0.035);
+      padding: 0.5rem 1.6rem;
+      font-family: var(--font-ui); font-size: 0.52rem; letter-spacing: 0.24em;
+      text-transform: uppercase; color: var(--gold);
+      border-bottom: 1px solid var(--bg-border);
+      border-top: 1px solid var(--bg-border);
     }
-    .timeline-label span:last-child { color: var(--text-dim); font-size: 0.65rem; }
-    .timeline-bars { display: flex; gap: 2px; height: 28px; align-items: stretch; }
+    .service-group-header:first-child { border-top: none; }
+
+    .service-row {
+      display: flex; align-items: center; gap: 1.25rem;
+      padding: 1.1rem 1.6rem;
+      border-bottom: 1px solid var(--bg-line);
+      transition: background 0.16s;
+    }
+    .service-row:last-child { border-bottom: none; }
+    .service-row:hover { background: rgba(201,169,110,0.025); }
+
+    .service-indicator {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+      transition: background 0.4s;
+    }
+    .service-info { flex: 1; min-width: 0; }
+    .service-name {
+      font-family: var(--font-ui); font-size: 0.8rem; font-weight: 500;
+      letter-spacing: 0.03em; color: var(--text);
+    }
+
+    /* Sparkline bars */
+    .service-bars { display: flex; gap: 2px; align-items: flex-end; flex-shrink: 0; }
+    .bar { width: 3px; border-radius: 1px; }
+    .status-up       { background: var(--green); }
+    .status-degraded { background: var(--yellow); }
+    .status-down     { background: var(--red); }
+
+    .service-response {
+      font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-sub);
+      text-align: right; flex-shrink: 0; min-width: 52px;
+    }
+    .service-response strong {
+      display: block; font-family: var(--font-mono); font-size: 0.78rem;
+      color: var(--text); font-weight: 400; letter-spacing: -0.01em;
+    }
+
+    .service-uptime { text-align: right; flex-shrink: 0; min-width: 56px; }
+    .uptime-value {
+      font-family: var(--font-mono); font-size: 0.88rem; font-weight: 300;
+      display: block; letter-spacing: -0.01em; line-height: 1.3;
+    }
+    .uptime-label {
+      font-family: var(--font-ui); font-size: 0.5rem; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+
+    .service-status-badge {
+      font-family: var(--font-ui); font-size: 0.52rem; letter-spacing: 0.16em;
+      text-transform: uppercase; padding: 3px 10px;
+      border: 1px solid; flex-shrink: 0;
+    }
+    .badge-up       { color: var(--green);  border-color: rgba(76,175,125,0.25); }
+    .badge-degraded { color: var(--yellow); border-color: rgba(232,184,75,0.25); }
+    .badge-down     { color: var(--red);    border-color: rgba(217,91,91,0.25); }
+    .badge-unknown  { color: var(--text-muted); border-color: rgba(255,255,255,0.07); }
+
+    /* ══ TIMELINE ══ */
+    .timeline-section { margin-bottom: 4.5rem; }
+    .timeline-service { margin-bottom: 2rem; }
+    .timeline-label {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 0.55rem;
+    }
+    .timeline-label-name {
+      font-family: var(--font-ui); font-size: 0.72rem; letter-spacing: 0.03em;
+      color: var(--text); font-weight: 500;
+    }
+    .timeline-label-uptime {
+      font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-sub);
+    }
+    .timeline-bars { display: flex; gap: 1.5px; height: 32px; align-items: stretch; }
     .timeline-bar {
-      flex: 1; border-radius: 1px; cursor: pointer; transition: opacity 0.15s;
+      flex: 1; border-radius: 1px; cursor: pointer; transition: opacity 0.14s;
       position: relative;
     }
-    .timeline-bar:hover { opacity: 0.75; }
+    .timeline-bar:hover { opacity: 0.72; }
     .timeline-bar[data-tip]:hover::after {
       content: attr(data-tip);
-      position: absolute; bottom: calc(100% + 6px); left: 50%;
+      position: absolute; bottom: calc(100% + 9px); left: 50%;
       transform: translateX(-50%);
-      background: #1a1a24; border: 1px solid var(--bg-border);
-      padding: 4px 8px; font-size: 0.62rem; letter-spacing: 0.06em;
+      background: var(--bg-card-2); border: 1px solid var(--bg-border);
+      padding: 5px 12px;
+      font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.05em;
       white-space: nowrap; color: var(--text);
-      pointer-events: none; z-index: 10;
+      pointer-events: none; z-index: 20;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    }
+    .timeline-dates {
+      display: flex; justify-content: space-between; margin-top: 0.4rem;
+    }
+    .timeline-date-label {
+      font-family: var(--font-ui); font-size: 0.5rem; letter-spacing: 0.08em;
+      color: var(--text-muted);
     }
     .timeline-legend {
-      display: flex; gap: 0.5rem; margin-bottom: 0.75rem; justify-content: flex-end;
+      display: flex; gap: 1.25rem; margin-bottom: 1.5rem; justify-content: flex-end;
     }
     .timeline-legend-item {
       display: flex; align-items: center; gap: 5px;
-      font-size: 0.62rem; color: var(--text-dim); letter-spacing: 0.06em;
+      font-family: var(--font-ui); font-size: 0.52rem; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-muted);
     }
     .legend-dot { width: 8px; height: 8px; border-radius: 1px; }
 
-    /* ── CHARTS ── */
+    /* ══ CHARTS ══ */
     .charts-grid {
       display: grid; grid-template-columns: 1fr 1fr;
-      gap: 1.5rem; margin-bottom: 3.5rem;
-      width: 100%;
+      gap: 1px; margin-bottom: 4.5rem;
+      background: var(--bg-border);
+      border: 1px solid var(--bg-border);
     }
-    /* Il terzo grafico occupa sempre l'intera riga */
-    .charts-grid > .chart-card:nth-child(3) {
-      grid-column: 1 / -1;
-    }
-    @media (max-width: 600px) { .charts-grid { grid-template-columns: 1fr; } }
-    .chart-card { background: var(--bg-card); border: 1px solid var(--bg-border); padding: 1.5rem; }
-    .chart-title { font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 1.25rem; }
-    .chart-stat {
-      font-family: var(--font-serif); font-size: 1.8rem; font-weight: 300;
-      color: var(--gold); margin-bottom: 0.25rem;
-    }
-    .chart-stat-label { font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
-    .chart-wrap { position: relative; height: 140px; }
-    .chart-wrap-tall { position: relative; height: 180px; }
+    .charts-grid > .chart-card:nth-child(3) { grid-column: 1 / -1; }
+    @media (max-width: 640px) { .charts-grid { grid-template-columns: 1fr; } }
 
-    /* ── INCIDENTS ── */
-    .incident-list { display: flex; flex-direction: column; gap: 0; margin-bottom: 3.5rem; }
+    .chart-card { background: var(--bg-card); padding: 1.75rem 1.75rem 1.5rem; }
+    .chart-title {
+      font-family: var(--font-ui); font-size: 0.52rem; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 1.1rem;
+    }
+    .chart-stat {
+      font-family: var(--font-mono); font-size: 1.9rem; font-weight: 300;
+      color: var(--text); letter-spacing: -0.02em; line-height: 1;
+      margin-bottom: 0.2rem;
+    }
+    .chart-stat-label {
+      font-family: var(--font-ui); font-size: 0.5rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 1.1rem;
+    }
+    .chart-wrap      { position: relative; height: 130px; }
+    .chart-wrap-tall { position: relative; height: 160px; }
+
+    /* ══ INCIDENTS ══ */
+    .incident-list { display: flex; flex-direction: column; gap: 0; margin-bottom: 4.5rem; }
     .incident-item {
       border: 1px solid var(--bg-border); border-bottom: none;
-      background: var(--bg-card); position: relative;
-      transition: background 0.2s;
+      background: var(--bg-card); position: relative; transition: background 0.16s;
     }
     .incident-item:last-child { border-bottom: 1px solid var(--bg-border); }
     .incident-item::before {
-      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
     }
-    .incident-item.severity-minor::before  { background: var(--yellow); }
-    .incident-item.severity-major::before  { background: var(--red); }
-    .incident-item.severity-resolved::before { background: var(--green); }
+    .incident-item.severity-minor::before   { background: var(--yellow); }
+    .incident-item.severity-major::before   { background: var(--red); }
+    .incident-item.severity-resolved::before { background: rgba(76,175,125,0.6); }
+
     .incident-header-row {
       display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 1rem; padding: 1.25rem 1.5rem; cursor: pointer;
-      user-select: none;
+      gap: 1.5rem; padding: 1.2rem 1.6rem 1.2rem 1.85rem;
+      cursor: pointer; user-select: none;
     }
-    .incident-header-row:hover { background: rgba(201,169,110,0.03); }
-    .incident-title { font-size: 0.9rem; font-weight: 400; letter-spacing: 0.02em; }
+    .incident-header-row:hover { background: rgba(201,169,110,0.02); }
+    .incident-title {
+      font-family: var(--font-ui); font-size: 0.83rem; font-weight: 500;
+      letter-spacing: 0.02em; color: var(--text); line-height: 1.45;
+    }
     .incident-meta {
       display: flex; align-items: center; gap: 1rem; flex-shrink: 0;
     }
-    .incident-date { font-size: 0.65rem; letter-spacing: 0.08em; color: var(--text-dim); white-space: nowrap; }
+    .incident-date {
+      font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.04em;
+      color: var(--text-muted); white-space: nowrap;
+    }
     .incident-chevron {
-      font-size: 0.7rem; color: var(--text-dim); transition: transform 0.2s;
+      font-size: 0.6rem; color: var(--text-muted); transition: transform 0.25s ease;
     }
     .incident-item.open .incident-chevron { transform: rotate(180deg); }
     .incident-body-wrap {
-      max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
-      padding: 0 1.5rem;
+      max-height: 0; overflow: hidden; transition: max-height 0.32s ease;
+      padding: 0 1.6rem 0 1.85rem;
     }
-    .incident-item.open .incident-body-wrap { max-height: 400px; padding-bottom: 1.25rem; }
-    .incident-body { font-size: 0.78rem; color: var(--text-dim); line-height: 1.6; letter-spacing: 0.01em; }
+    .incident-item.open .incident-body-wrap { max-height: 500px; padding-bottom: 1.4rem; }
+    .incident-body {
+      font-family: var(--font-ui); font-size: 0.76rem; color: var(--text-sub);
+      line-height: 1.68; letter-spacing: 0.01em;
+    }
     .incident-updates { margin-top: 1rem; }
     .incident-update {
-      display: flex; gap: 1rem; padding: 0.6rem 0;
-      border-top: 1px solid var(--bg-border); font-size: 0.72rem;
+      display: flex; gap: 1.25rem; padding: 0.65rem 0;
+      border-top: 1px solid var(--bg-line);
     }
-    .update-time { color: var(--gold); font-family: var(--font-serif); white-space: nowrap; padding-top: 1px; }
-    .update-text { color: var(--text-dim); line-height: 1.5; }
+    .update-time {
+      font-family: var(--font-mono); font-size: 0.6rem; color: var(--gold);
+      white-space: nowrap; padding-top: 2px; min-width: 84px;
+    }
+    .update-text {
+      font-family: var(--font-ui); font-size: 0.72rem; color: var(--text-sub);
+      line-height: 1.6;
+    }
     .incident-status-badge {
-      font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase;
-      padding: 2px 8px; border: 1px solid; flex-shrink: 0;
+      font-family: var(--font-ui); font-size: 0.5rem; letter-spacing: 0.16em;
+      text-transform: uppercase; padding: 2px 9px; border: 1px solid; flex-shrink: 0;
     }
-    .badge-active   { color: var(--red);    border-color: rgba(217,91,91,0.3); }
-    .badge-resolved { color: var(--green);  border-color: rgba(76,175,125,0.3); }
-    .badge-monitoring { color: var(--yellow); border-color: rgba(232,184,75,0.3); }
+    .badge-active     { color: var(--red);    border-color: rgba(217,91,91,0.25); }
+    .badge-resolved   { color: var(--green);  border-color: rgba(76,175,125,0.25); }
+    .badge-monitoring { color: var(--yellow); border-color: rgba(232,184,75,0.25); }
 
-    /* ── LOADING SKELETON ── */
+    /* ══ LOADING SKELETON ══ */
     .skeleton {
-      background: linear-gradient(90deg, var(--bg-card) 25%, rgba(201,169,110,0.05) 50%, var(--bg-card) 75%);
+      background: linear-gradient(
+        90deg,
+        var(--bg-card) 25%,
+        rgba(201,169,110,0.045) 50%,
+        var(--bg-card) 75%
+      );
       background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
+      animation: shimmer 1.7s infinite;
       border-radius: 2px;
     }
-    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
 
-    /* ── FADE IN ── */
-    .fade-in { opacity: 0; transform: translateY(12px); animation: fadeIn 0.5s ease forwards; }
+    /* ══ FADE IN ══ */
+    .fade-in {
+      opacity: 0; transform: translateY(14px);
+      animation: fadeIn 0.55s ease forwards;
+    }
     @keyframes fadeIn { to { opacity: 1; transform: none; } }
-    .fade-in:nth-child(1) { animation-delay: 0.05s; }
-    .fade-in:nth-child(2) { animation-delay: 0.1s; }
-    .fade-in:nth-child(3) { animation-delay: 0.15s; }
-    .fade-in:nth-child(4) { animation-delay: 0.2s; }
-    .fade-in:nth-child(5) { animation-delay: 0.25s; }
+    .fade-in:nth-child(1) { animation-delay: 0.04s; }
+    .fade-in:nth-child(2) { animation-delay: 0.09s; }
+    .fade-in:nth-child(3) { animation-delay: 0.14s; }
+    .fade-in:nth-child(4) { animation-delay: 0.19s; }
+    .fade-in:nth-child(5) { animation-delay: 0.24s; }
 
-    /* ── FOOTER ── */
+    /* ══ FOOTER ══ */
     footer {
       border-top: 1px solid var(--bg-border);
-      padding: 2rem clamp(1.5rem,5vw,4rem);
+      padding: 2rem var(--gutter);
       position: relative; z-index: 1;
     }
     .footer-inner {
-      max-width: 1100px; margin: 0 auto;
+      max-width: var(--max-w); margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between;
       flex-wrap: wrap; gap: 1rem;
     }
-    .footer-text { font-size: 0.68rem; letter-spacing: 0.08em; color: var(--text-dim); }
-    .footer-link {
-      color: var(--gold); text-decoration: none; font-size: 0.68rem;
-      letter-spacing: 0.1em; text-transform: uppercase;
-      border-bottom: 1px solid rgba(201,169,110,0.3); padding-bottom: 1px;
-      transition: border-color 0.2s;
+    .footer-text {
+      font-family: var(--font-ui); font-size: 0.6rem; letter-spacing: 0.1em;
+      color: var(--text-muted);
     }
-    .footer-link:hover { border-color: var(--gold); }
+    .footer-link {
+      font-family: var(--font-ui); font-size: 0.6rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--gold); text-decoration: none;
+      opacity: 0.75; transition: opacity 0.2s;
+    }
+    .footer-link:hover { opacity: 1; }
 
-    /* ── MOBILE ── */
-    @media (max-width: 540px) {
+    /* ══ MOBILE ══ */
+    @media (max-width: 560px) {
       .service-bars, .service-response { display: none; }
-      .hero-meta { gap: 2rem; }
+      .hero-meta { display: flex; flex-direction: column; width: 100%; max-width: 280px; }
+      .hero-stat { border-right: none; border-bottom: 1px solid var(--bg-border); }
+      .hero-stat:last-child { border-bottom: none; }
       .header-nav a:not(.active) { display: none; }
+      .hero-eyebrow::before, .hero-eyebrow::after { width: 1rem; margin: 0 0.6rem; }
+    }
+    @media (max-width: 420px) {
+      .incident-date { display: none; }
     }
   </style>
 </head>
 <body>
 
-<!-- ── INCIDENT / MAINTENANCE BANNER ── -->
+<!-- ══ INCIDENT / MAINTENANCE BANNER ══ -->
 <div id="incident-banner">
   <div class="banner-inner">
     <div class="banner-dot"></div>
-    <div class="banner-text"><strong id="banner-title">—</strong> <span id="banner-subtitle"></span></div>
+    <div class="banner-text">
+      <strong id="banner-title">—</strong>
+      <span id="banner-subtitle"></span>
+    </div>
     <a id="banner-link" href="#incidents" class="banner-link">Dettagli →</a>
   </div>
 </div>
 
-<header style="position:sticky;top:0">
+<!-- ══ HEADER ══ -->
+<header>
   <div class="header-inner">
     <a href="https://luxhaven360.com" class="brand">
       <img
@@ -450,7 +598,6 @@
         onload="this.classList.add('brand-logo-loaded')"
         onerror="this.style.display='none'"
       />
-      <!-- Fallback testo visibile solo se il logo non carica -->
       <span class="brand-name">LuxHaven360</span>
     </a>
     <nav class="header-nav">
@@ -460,123 +607,153 @@
     </nav>
     <div class="live-badge">
       <div class="live-dot" id="live-dot"></div>
-      <span id="live-label">Live</span>
+      <span>Live</span>
     </div>
+    <div id="refresh-bar" style="width:0%"></div>
   </div>
-  <div id="refresh-bar" style="width:0%"></div>
 </header>
 
 <main>
 
   <!-- ══ HERO ══ -->
   <section class="hero fade-in" id="hero">
-    <div class="hero-eyebrow">Monitoraggio in tempo reale</div>
-    <div class="hero-status-icon" id="hero-icon">
-      <!-- skeleton -->
-      <div class="skeleton" style="width:28px;height:28px;border-radius:50%"></div>
+    <p class="hero-eyebrow">Monitoraggio in tempo reale</p>
+
+    <div class="hero-status-icon">
+      <div id="hero-icon">
+        <div class="skeleton" style="width:32px;height:32px;border-radius:50%"></div>
+      </div>
     </div>
+
     <h1 class="hero-title" id="hero-title">Caricamento in <em>corso…</em></h1>
+
     <p class="hero-subtitle" id="hero-subtitle">
-      Aggiornato ogni 60 secondi · Ultimo controllo: <span id="last-check">—</span>
+      Aggiornato ogni 60 secondi &thinsp;·&thinsp; Ultimo controllo:
+      <span id="last-check">—</span>
     </p>
-    <!-- Messaggio separato per stati speciali — MAI sovrascrivere hero-subtitle (contiene #last-check) -->
-    <p class="hero-subtitle" id="hero-notice" style="display:none;margin-top:0.4rem"></p>
+    <p class="hero-subtitle" id="hero-notice" style="display:none;margin-top:0.3rem"></p>
+
     <div class="hero-meta">
       <div class="hero-stat">
         <span class="hero-stat-value" id="stat-uptime">—</span>
-        <span class="hero-stat-label">Uptime 90 giorni</span>
+        <span class="hero-stat-label">Uptime 90gg</span>
       </div>
       <div class="hero-stat">
         <span class="hero-stat-value" id="stat-incidents">—</span>
-        <span class="hero-stat-label">Incidenti 30 giorni</span>
+        <span class="hero-stat-label">Incidenti 30gg</span>
       </div>
       <div class="hero-stat">
         <span class="hero-stat-value" id="stat-response">—</span>
-        <span class="hero-stat-label">Risposta media (ms)</span>
+        <span class="hero-stat-label">Risposta (ms)</span>
       </div>
     </div>
+
     <div class="refresh-info">
       <span class="refresh-item">
-        <span style="color:var(--text-dim)">Aggiornamento tra</span>
-        <span class="refresh-countdown" id="refresh-countdown">—</span>
-        <span style="color:var(--text-dim)">s</span>
+        Aggiornamento tra&nbsp;<span class="refresh-countdown" id="refresh-countdown">—</span>&thinsp;s
       </span>
       <span class="refresh-item" id="last-updated">Caricamento…</span>
     </div>
   </section>
 
   <!-- ══ SERVICES ══ -->
-  <section id="services" style="margin-bottom:3.5rem">
+  <section id="services" style="margin-bottom:4.5rem">
     <div class="section-header">
       <h2 class="section-title">Servizi</h2>
+      <div class="section-rule"></div>
       <span class="section-tag" id="services-count">Caricamento…</span>
     </div>
     <div class="services-grid" id="services-grid">
-      <!-- skeleton × 6 -->
-      <div class="service-row"><div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:40%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:60%"></div></div></div>
-      <div class="service-row"><div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:50%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:40%"></div></div></div>
-      <div class="service-row"><div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:30%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:55%"></div></div></div>
-      <div class="service-row"><div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:45%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:60%"></div></div></div>
-      <div class="service-row"><div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:35%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:50%"></div></div></div>
-      <div class="service-row"><div class="skeleton" style="width:8px;height:8px;border-radius:50%"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:55%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:70%"></div></div></div>
+      <div class="service-row">
+        <div class="skeleton" style="width:7px;height:7px;border-radius:50%"></div>
+        <div style="flex:1"><div class="skeleton" style="height:11px;width:40%"></div></div>
+      </div>
+      <div class="service-row">
+        <div class="skeleton" style="width:7px;height:7px;border-radius:50%"></div>
+        <div style="flex:1"><div class="skeleton" style="height:11px;width:55%"></div></div>
+      </div>
+      <div class="service-row">
+        <div class="skeleton" style="width:7px;height:7px;border-radius:50%"></div>
+        <div style="flex:1"><div class="skeleton" style="height:11px;width:33%"></div></div>
+      </div>
+      <div class="service-row">
+        <div class="skeleton" style="width:7px;height:7px;border-radius:50%"></div>
+        <div style="flex:1"><div class="skeleton" style="height:11px;width:48%"></div></div>
+      </div>
+      <div class="service-row">
+        <div class="skeleton" style="width:7px;height:7px;border-radius:50%"></div>
+        <div style="flex:1"><div class="skeleton" style="height:11px;width:38%"></div></div>
+      </div>
     </div>
   </section>
 
-  <!-- ══ TIMELINE 90 GIORNI ══ -->
+  <!-- ══ TIMELINE ══ -->
   <section class="timeline-section fade-in" id="timeline-section">
     <div class="section-header">
-      <h2 class="section-title">Timeline — ultimi 90 giorni</h2>
-      <span class="section-tag">Ogni barra = 1 giorno</span>
+      <h2 class="section-title">Timeline</h2>
+      <div class="section-rule"></div>
+      <span class="section-tag">Ultimi 90 giorni · 1 barra = 1 giorno</span>
     </div>
     <div class="timeline-legend">
-      <div class="timeline-legend-item"><div class="legend-dot" style="background:var(--green)"></div>Operativo</div>
-      <div class="timeline-legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Degradato</div>
-      <div class="timeline-legend-item"><div class="legend-dot" style="background:var(--red)"></div>Down</div>
-      <div class="timeline-legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.12)"></div>N/D</div>
+      <div class="timeline-legend-item">
+        <div class="legend-dot" style="background:var(--green)"></div>Operativo
+      </div>
+      <div class="timeline-legend-item">
+        <div class="legend-dot" style="background:var(--yellow)"></div>Degradato
+      </div>
+      <div class="timeline-legend-item">
+        <div class="legend-dot" style="background:var(--red)"></div>Down
+      </div>
+      <div class="timeline-legend-item">
+        <div class="legend-dot" style="background:rgba(255,255,255,0.10)"></div>N/D
+      </div>
     </div>
     <div id="timeline-wrap"></div>
   </section>
 
-  <!-- ══ CHARTS ══ -->
-  <section class="fade-in" style="margin-bottom:3.5rem">
+  <!-- ══ ANALISI ══ -->
+  <section class="fade-in">
     <div class="section-header">
       <h2 class="section-title">Analisi</h2>
+      <div class="section-rule"></div>
       <span class="section-tag">Ultimi 30 giorni</span>
     </div>
     <div class="charts-grid">
-      <!-- Uptime trend -->
+
       <div class="chart-card">
         <div class="chart-title">Uptime (%)</div>
         <div class="chart-wrap-tall"><canvas id="chartUptime"></canvas></div>
       </div>
-      <!-- Response time — dati reali da Upptime history/*.yml -->
+
       <div class="chart-card">
-        <div class="chart-title">Tempo di risposta (ms)</div>
+        <div class="chart-title">Tempo di risposta</div>
         <div class="chart-stat" id="avg-response-display">—</div>
-        <div class="chart-stat-label">media attuale · dati Upptime</div>
-        <div style="margin-top:1rem" class="chart-wrap-tall"><canvas id="chartResponse"></canvas></div>
+        <div class="chart-stat-label">ms &thinsp;·&thinsp; media attuale</div>
+        <div class="chart-wrap-tall"><canvas id="chartResponse"></canvas></div>
       </div>
-      <!-- Incidents -->
+
       <div class="chart-card">
-        <div class="chart-title">Downtime (eventi)</div>
+        <div class="chart-title">Downtime Events</div>
         <div class="chart-stat" id="downtime-events-display">—</div>
-        <div class="chart-stat-label">ultimi 30 giorni</div>
-        <div style="margin-top:1rem" class="chart-wrap"><canvas id="chartDowntime"></canvas></div>
+        <div class="chart-stat-label">incidenti registrati</div>
+        <div class="chart-wrap"><canvas id="chartDowntime"></canvas></div>
       </div>
+
     </div>
   </section>
 
-  <!-- ══ INCIDENTS ══ -->
+  <!-- ══ INCIDENTI ══ -->
   <section id="incidents" class="fade-in">
     <div class="section-header">
       <h2 class="section-title">Registro incidenti</h2>
+      <div class="section-rule"></div>
       <span class="section-tag" id="incidents-count">—</span>
     </div>
     <div class="incident-list" id="incident-list">
       <div class="incident-item severity-resolved">
         <div class="incident-header-row">
-          <div class="skeleton" style="height:14px;width:50%"></div>
-          <div class="skeleton" style="height:11px;width:80px"></div>
+          <div class="skeleton" style="height:12px;width:45%"></div>
+          <div class="skeleton" style="height:11px;width:65px"></div>
         </div>
       </div>
     </div>
@@ -586,31 +763,40 @@
 
 <footer>
   <div class="footer-inner">
-    <span class="footer-text">© <span id="footer-year"></span> LuxHaven360 · Powered by Upptime + GitHub Pages</span>
-    <a href="https://reports.luxhaven360.com" class="footer-link">Segnala un problema →</a>
+    <span class="footer-text">
+      © <span id="footer-year"></span> LuxHaven360
+      &thinsp;·&thinsp; Powered by Upptime + GitHub Pages
+    </span>
+    <a href="https://reports.luxhaven360.com" class="footer-link">
+      Segnala un problema →
+    </a>
   </div>
 </footer>
 
 <script>
-/* ══════════════════════════════════════════════════════
-   STATUS PAGE v2.0 — LuxHaven360
-   Architettura: GitHub raw files + sessionStorage cache
-   Polling intelligente: pausa quando tab nascosta
-══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   STATUS PAGE v5.0 — LuxHaven360
+   Design: Obsidian Atelier
 
-// ═══════════════════════════════════════════════════════
-//  !! CONFIGURA QUI I TUOI DATI !!
-// ═══════════════════════════════════════════════════════
+   ARCHITETTURA (invariata — zero richieste aggiuntive):
+   · Fetch da GitHub raw files (Upptime)
+   · Cache sessionStorage con TTL 55s
+   · Polling ogni 60s, in pausa quando tab nascosta
+   · Nessuna chiamata aggiuntiva verso Cloudflare Worker
+     (il Worker è usato solo da reports-page.html)
+══════════════════════════════════════════════════════════════════ */
+
+// ═══════════════ CONFIG ═══════════════
 const CONFIG = {
-  githubOwner:  'luxhaven360',   // ← cambia
-  githubRepo:   'upptime',        // ← cambia
-  refreshMs:    60_000,           // intervallo normale (60s)
-  fastRefreshMs: 20_000,          // dopo errore (20s)
-  reportsUrl:   'https://reports.luxhaven360.com',
-  cacheKey:     'lh360_status_v2',
-  cacheTTL:     55_000,           // ms prima di considerare cache stale
+  githubOwner:   'luxhaven360',
+  githubRepo:    'upptime',
+  refreshMs:     60_000,
+  fastRefreshMs: 20_000,
+  reportsUrl:    'https://reports.luxhaven360.com',
+  cacheKey:      'lh360_status_v5',
+  cacheTTL:      55_000,
 };
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════
 
 const BASE = `https://raw.githubusercontent.com/${CONFIG.githubOwner}/${CONFIG.githubRepo}/master`;
 const API  = `https://api.github.com/repos/${CONFIG.githubOwner}/${CONFIG.githubRepo}`;
@@ -620,30 +806,23 @@ const GOLD   = '#C9A96E';
 const GREEN  = '#4CAF7D';
 const YELLOW = '#E8B84B';
 const RED    = '#D95B5B';
-const DIM    = 'rgba(232,226,217,0.12)';
+const DIM    = 'rgba(255,255,255,0.05)';
 
-// ── Polling state ──────────────────────────────────────
-let refreshTimer    = null;
-let countdownTimer  = null;
-let nextRefreshAt   = null;
-let chartUptime     = null;
-let chartResponse   = null;
-let chartDowntime   = null;
-let lastData        = null;
-let isFirstLoad     = true;
+let refreshTimer   = null;
+let countdownTimer = null;
+let nextRefreshAt  = null;
+let chartUptime    = null;
+let chartResponse  = null;
+let chartDowntime  = null;
+let lastData       = null;
+let isFirstLoad    = true;
 
-// ── Helpers ───────────────────────────────────────────
+/* ── Helpers ── */
 function statusColor(s) {
   if (s === 'up')       return GREEN;
   if (s === 'degraded') return YELLOW;
   if (s === 'down')     return RED;
-  return 'rgba(255,255,255,0.15)';
-}
-function statusLabel(s) {
-  if (s === 'up')       return 'Operativo';
-  if (s === 'degraded') return 'Degradato';
-  if (s === 'down')     return 'Non disponibile';
-  return 'Sconosciuto';
+  return 'rgba(255,255,255,0.09)';
 }
 function fmtDate(iso) {
   if (!iso) return '—';
@@ -653,10 +832,12 @@ function fmtDate(iso) {
 }
 function fmtDateShort(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString('it-IT', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+  return new Date(iso).toLocaleString('it-IT', {
+    day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'
+  });
 }
 
-// ── sessionStorage cache ──────────────────────────────
+/* ── sessionStorage cache ── */
 function saveCache(data) {
   try {
     sessionStorage.setItem(CONFIG.cacheKey, JSON.stringify({ data, ts: Date.now() }));
@@ -667,38 +848,35 @@ function loadCache() {
     const raw = sessionStorage.getItem(CONFIG.cacheKey);
     if (!raw) return null;
     const { data, ts } = JSON.parse(raw);
-    if (Date.now() - ts > CONFIG.cacheTTL * 3) return null; // max 3x TTL
+    if (Date.now() - ts > CONFIG.cacheTTL * 3) return null;
     return { data, age: Date.now() - ts };
   } catch { return null; }
 }
 
-// ── Refresh progress bar ──────────────────────────────
+/* ── Progress bar ── */
 function startProgressBar(durationMs) {
   const bar = $('refresh-bar');
   if (!bar) return;
-  bar.style.transition = 'none';
-  bar.style.width = '0%';
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      bar.style.transition = `width ${durationMs / 1000}s linear`;
-      bar.style.width = '100%';
-    });
-  });
+  bar.style.transition = 'none'; bar.style.width = '0%';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    bar.style.transition = `width ${durationMs / 1000}s linear`;
+    bar.style.width = '100%';
+  }));
 }
 
-// ── Countdown display ─────────────────────────────────
+/* ── Countdown ── */
 function startCountdown(durationMs) {
   clearInterval(countdownTimer);
   nextRefreshAt = Date.now() + durationMs;
   countdownTimer = setInterval(() => {
-    const remaining = Math.max(0, Math.ceil((nextRefreshAt - Date.now()) / 1000));
+    const rem = Math.max(0, Math.ceil((nextRefreshAt - Date.now()) / 1000));
     const el = $('refresh-countdown');
-    if (el) el.textContent = remaining;
-    if (remaining === 0) clearInterval(countdownTimer);
+    if (el) el.textContent = rem;
+    if (rem === 0) clearInterval(countdownTimer);
   }, 500);
 }
 
-// ── Schedule next refresh ─────────────────────────────
+/* ── Schedule refresh ── */
 function scheduleRefresh(delayMs = CONFIG.refreshMs) {
   clearTimeout(refreshTimer);
   startCountdown(delayMs);
@@ -706,7 +884,6 @@ function scheduleRefresh(delayMs = CONFIG.refreshMs) {
 
   refreshTimer = setTimeout(async () => {
     if (document.hidden) {
-      // Tab nascosta → aspetta che torni visibile
       const onVisible = () => {
         if (!document.hidden) {
           document.removeEventListener('visibilitychange', onVisible);
@@ -720,7 +897,7 @@ function scheduleRefresh(delayMs = CONFIG.refreshMs) {
   }, delayMs);
 }
 
-// ── Refresh immediato quando tab torna visibile ───────
+/* ── Tab visibility: refresh when stale ── */
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     const cache = loadCache();
@@ -733,11 +910,10 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// ─────────────────────────────────────────────────────
-//  MAIN FETCH ORCHESTRATOR
-// ─────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────
+   MAIN FETCH ORCHESTRATOR
+───────────────────────────────────────────────────── */
 async function loadData() {
-  // Mostra dati cached istantaneamente (se disponibili)
   if (isFirstLoad) {
     const cached = loadCache();
     if (cached) {
@@ -751,21 +927,18 @@ async function loadData() {
   try {
     let data;
     try {
-      // Prova prima l'API Upptime generata
       const res = await fetch(`${BASE}/api/status.json`, { cache: 'no-store' });
       if (res.ok) data = await res.json();
     } catch {}
 
-    if (!data) {
-      data = await synthesizeFromGitHub();
-    }
+    if (!data) data = await synthesizeFromGitHub();
 
-    // Fetch incidenti (Issues GitHub con label incident)
     data.incidents = await fetchIncidents();
 
-    // Conta incidenti negli ultimi 30 giorni
-    const cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate() - 30);
-    data.incidentCount = (data.incidents || []).filter(i => new Date(i.startTime) > cutoff30).length;
+    const cutoff30 = new Date();
+    cutoff30.setDate(cutoff30.getDate() - 30);
+    data.incidentCount = (data.incidents || [])
+      .filter(i => new Date(i.startTime) > cutoff30).length;
 
     saveCache(data);
     renderAll(data, false);
@@ -778,10 +951,10 @@ async function loadData() {
   }
 }
 
-// ─────────────────────────────────────────────────────
-//  FETCH INCIDENTS FROM GITHUB ISSUES
-// ─────────────────────────────────────────────────────
-let _incidentsRateLimited = false; // evita tentativi ripetuti se rate-limited
+/* ─────────────────────────────────────────────────────
+   FETCH INCIDENTS FROM GITHUB ISSUES
+───────────────────────────────────────────────────── */
+let _incidentsRateLimited = false;
 
 async function fetchIncidents() {
   if (_incidentsRateLimited) return [];
@@ -791,12 +964,11 @@ async function fetchIncidents() {
       { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' }
     );
     if (r.status === 403 || r.status === 429) {
-      _incidentsRateLimited = true; // smetti di riprovare fino a ricaricamento pagina
+      _incidentsRateLimited = true;
       return [];
     }
     if (!r.ok) return [];
     const issues = await r.json();
-
     return issues.map(issue => ({
       id:          issue.number,
       title:       issue.title,
@@ -804,49 +976,36 @@ async function fetchIncidents() {
       startTime:   issue.created_at,
       resolved:    issue.state === 'closed',
       severity:    issue.labels?.some(l => l.name === 'critical') ? 'major' : 'minor',
-      updates: (issue.comments || []).map(c => ({
-        time: c.created_at, text: c.body
-      })),
+      updates: (issue.comments || []).map(c => ({ time: c.created_at, text: c.body })),
     }));
   } catch { return []; }
 }
 
-// ─────────────────────────────────────────────────────
-//  SYNTHESIZE FROM GITHUB (fallback se api/status.json non esiste)
-// ─────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────
+   SYNTHESIZE FROM GITHUB (fallback se api/status.json non esiste)
+───────────────────────────────────────────────────── */
 async function synthesizeFromGitHub() {
-  // Fallback hardcoded — mappa completa dei servizi LuxHaven360 v3
-  // Frontend · Servizi Backend · Infrastruttura · Dipendenze
   let config = { sites: [
-    // ── Frontend ────────────────────────────────────────────
-    { name: 'Sito Principale',           url: 'https://luxhaven360.com',                                      group: 'frontend' },
-    { name: 'Portale Reports',           url: 'https://reports.luxhaven360.com',                              group: 'frontend', slug: 'portale-reports' },
-    // ── Servizi Backend ──────────────────────────────────────
-    { name: 'API Core',                  url: 'https://script.google.com/macros/s/AKfycbwr79RkXIEocpuOKaM6uMJqE6VFs9wjlUPvrr__FvDbDDrD2ELB1NbfrWP3BCYpHj2u/exec?action=ping', group: 'backend', slug: 'api-core' },
-    { name: 'Servizi Community',         url: 'https://script.google.com/macros/s/AKfycbwrDLCy9xO2mcX0ORieD5k9Ck7_6ysrnBfayWg_Gd_Pno4UrCa-2JuBTvkzBNvkfQ_xxQ/exec',          group: 'backend', slug: 'servizi-community' },
-    { name: 'Sistema Abbonamenti',       url: 'https://script.google.com/macros/s/AKfycbyLb-E_43gf3inu4cC062Cn-OpbXK1fM8QiflQ8k6F_uxRrorcTVhWVUOgOWTJrOFwa/exec?action=ping', group: 'backend', slug: 'sistema-abbonamenti' },
-    { name: 'Protezione Accessi',        url: 'https://script.google.com/macros/s/AKfycbyLT41A8PPuQwyjCHkFA6anJhp-ywVJhy7TlMpxydaw3osPuplcsfafiNANA3s1hzk7/exec?action=health', group: 'backend', slug: 'protezione-accessi' },
-    // ── Infrastruttura ──────────────────────────────────────
-    { name: 'CDN Assets',                url: 'https://cdn.luxhaven360.com',                                  group: 'infra' },
-    { name: 'Reports API',               url: 'https://reports-api.luxhaven360.com/health',                   group: 'infra' },
-    // ── Database & Realtime ─────────────────────────────────
-    { name: 'Database',                  url: 'https://tilxhlrwhqvmpxugvslw.supabase.co/rest/v1/',             group: 'infra', slug: 'database' },
-    // ── Dipendenze critiche esterne ─────────────────────────
-    { name: 'API Cambio Valuta',         url: 'https://api.frankfurter.app/latest',                           group: 'deps', slug: 'api-cambio-valuta' },
-    { name: 'Pagamenti Stripe',          url: 'https://checkout.stripe.com',                                  group: 'deps', slug: 'pagamenti-stripe' },
-    { name: 'Geolocalizzazione',         url: 'https://ipapi.co/json/',                                       group: 'deps', slug: 'geolocalizzazione' },
+    { name: 'Sito Principale',       url: 'https://luxhaven360.com',                                      group: 'frontend' },
+    { name: 'Portale Reports',       url: 'https://reports.luxhaven360.com',                              group: 'frontend', slug: 'portale-reports' },
+    { name: 'API Core',              url: 'https://script.google.com/macros/s/AKfycbwr79RkXIEocpuOKaM6uMJqE6VFs9wjlUPvrr__FvDbDDrD2ELB1NbfrWP3BCYpHj2u/exec?action=ping', group: 'backend', slug: 'api-core' },
+    { name: 'Servizi Community',     url: 'https://script.google.com/macros/s/AKfycbwrDLCy9xO2mcX0ORieD5k9Ck7_6ysrnBfayWg_Gd_Pno4UrCa-2JuBTvkzBNvkfQ_xxQ/exec',          group: 'backend', slug: 'servizi-community' },
+    { name: 'Sistema Abbonamenti',   url: 'https://script.google.com/macros/s/AKfycbyLb-E_43gf3inu4cC062Cn-OpbXK1fM8QiflQ8k6F_uxRrorcTVhWVUOgOWTJrOFwa/exec?action=ping', group: 'backend', slug: 'sistema-abbonamenti' },
+    { name: 'Protezione Accessi',    url: 'https://script.google.com/macros/s/AKfycbyLT41A8PPuQwyjCHkFA6anJhp-ywVJhy7TlMpxydaw3osPuplcsfafiNANA3s1hzk7/exec?action=health', group: 'backend', slug: 'protezione-accessi' },
+    { name: 'CDN Assets',            url: 'https://cdn.luxhaven360.com',                                  group: 'infra' },
+    { name: 'Reports API',           url: 'https://reports-api.luxhaven360.com/health',                   group: 'infra' },
+    { name: 'Database',              url: 'https://tilxhlrwhqvmpxugvslw.supabase.co/rest/v1/',             group: 'infra', slug: 'database' },
+    { name: 'API Cambio Valuta',     url: 'https://api.frankfurter.app/latest',                           group: 'deps', slug: 'api-cambio-valuta' },
+    { name: 'Pagamenti Stripe',      url: 'https://checkout.stripe.com',                                  group: 'deps', slug: 'pagamenti-stripe' },
+    { name: 'Geolocalizzazione',     url: 'https://ipapi.co/json/',                                       group: 'deps', slug: 'geolocalizzazione' },
   ]};
 
-  // ── CONTROLLO UNICO: il repo Upptime è già configurato? ──
-  // Tentiamo di caricare .upptimerc.yml UNA sola volta.
-  // Se restituisce 404, il repo non è ancora pronto → restituiamo tutti i servizi come
-  // "unknown" SENZA ulteriori fetch, evitando la cascata di 14+ errori 404 in console.
+  // Controllo unico: il repo Upptime è configurato?
   let repoReady = false;
   try {
     const rcRes = await fetch(`${BASE}/.upptimerc.yml`, { cache: 'no-store' });
     if (rcRes.ok) {
       repoReady = true;
-      // Sovrascrivi config con i dati reali del .yml se presenti
       const txt = await rcRes.text();
       const sites = [];
       let inSites = false, current = {};
@@ -866,8 +1025,7 @@ async function synthesizeFromGitHub() {
     }
   } catch {}
 
-  // Se il repo non è ancora pronto (404 o errore di rete), restituiamo subito
-  // tutti i servizi come "unknown" — niente fetch aggiuntivi, niente 404 in console.
+  // Repo non pronto: restituisce unknown senza 404 in cascata
   if (!repoReady) {
     return {
       services: config.sites.map(site => ({
@@ -877,28 +1035,24 @@ async function synthesizeFromGitHub() {
     };
   }
 
-  // ── Il repo è pronto: recupera i file history/*.yml per ogni servizio ──
   const serviceData = await Promise.all(config.sites.map(async site => {
-    // Upptime genera lo slug dal name nel .yml: lowercase, spaces→hyphens
-    // Se il name contiene numeri o caratteri speciali, vengono mantenuti (es. 360)
     const slug = (site.slug || site.name)
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
+      .toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     let status = 'unknown', uptime = '—', response = '—', history = [];
     try {
-      const txt = await fetch(`${BASE}/history/${slug}.yml`, { cache: 'no-store' }).then(r => r.ok ? r.text() : '');
+      const txt = await fetch(`${BASE}/history/${slug}.yml`, { cache: 'no-store' })
+        .then(r => r.ok ? r.text() : '');
       if (txt) {
         const entries = parseYaml(txt);
         const latest  = entries[entries.length - 1];
         if (latest) {
-          status   = (latest.status === '200' || latest.status === 'up') ? 'up' : latest.status === 'degraded' ? 'degraded' : 'down';
+          status   = (latest.status === '200' || latest.status === 'up') ? 'up'
+                   : latest.status === 'degraded' ? 'degraded' : 'down';
           response = latest.responseTime || '—';
         }
         const ups = entries.filter(e => e.status === '200' || e.status === 'up').length;
-        uptime  = entries.length ? ((ups / entries.length) * 100).toFixed(2) : '—';
+        uptime = entries.length ? ((ups / entries.length) * 100).toFixed(2) : '—';
 
-        // ── Aggrega per giorno: worst status vince (down > degraded > up) ──
         const RANK = { down: 2, degraded: 1, up: 0 };
         const dayMap = {};
         for (const e of entries) {
@@ -906,11 +1060,9 @@ async function synthesizeFromGitHub() {
           const dayKey = new Date(e.startTime).toISOString().split('T')[0];
           const st = (e.status === '200' || e.status === 'up') ? 'up'
                    : e.status === 'degraded' ? 'degraded' : 'down';
-          if (!dayMap[dayKey] || RANK[st] > RANK[dayMap[dayKey].status]) {
+          if (!dayMap[dayKey] || RANK[st] > RANK[dayMap[dayKey].status])
             dayMap[dayKey] = { date: dayKey, status: st };
-          }
         }
-        // Costruisce array esatto di 90 giorni: [89 giorni fa … oggi]
         const _today = new Date();
         const todayKey = _today.toISOString().split('T')[0];
         history = Array.from({ length: 90 }, (_, i) => {
@@ -919,12 +1071,7 @@ async function synthesizeFromGitHub() {
           const key = d.toISOString().split('T')[0];
           return dayMap[key] || { date: key, status: 'unknown' };
         });
-        // Override barra di oggi con lo status live (l’ultimo ping reale).
-        // Upptime scrive i check con delay, quindi oggi sarebbe grigia
-        // finché non arriva il prossimo run GitHub Actions.
-        if (status !== 'unknown') {
-          history[89] = { date: todayKey, status };
-        }
+        if (status !== 'unknown') history[89] = { date: todayKey, status };
       }
     } catch {}
     return { name: site.name, url: site.url, group: site.group || null, status, uptime, response, history };
@@ -942,32 +1089,27 @@ function parseYaml(text) {
       const m = line.match(/^\s*([\w]+):\s*(.+)/);
       if (m) entry[m[1].trim()] = m[2].trim().replace(/^['"]|['"]$/g,'');
     }
-    // Upptime usa 'startTime' come campo data; salva anche responseTime
     if (entry.startTime) entries.push(entry);
   }
   return entries;
 }
 
-// ─────────────────────────────────────────────────────
-//  RENDER ALL
-// ─────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────
+   RENDER ALL
+───────────────────────────────────────────────────── */
 function renderAll(data, fromCache = false) {
-  const services  = data.services || [];
-  // Per lo stato hero e le stats, usa solo i servizi core (no dipendenze esterne)
+  const services    = data.services || [];
   const coreForHero = services.filter(s => s.group !== 'deps');
   const hasDown     = coreForHero.some(s => s.status === 'down');
   const hasDegraded = coreForHero.some(s => s.status === 'degraded');
+  const allUnknown  = services.length > 0 && services.every(s => s.status === 'unknown');
 
-  // Active incident / maintenance detection
   const activeIncident = (data.incidents || []).find(i => !i.resolved);
   renderBanner(activeIncident);
 
-  // Hero
   let heroTitle = 'Tutti i sistemi<br><em>operativi</em>';
   let iconColor = GREEN;
   let iconPath  = 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z';
-
-  const allUnknown = services.length > 0 && services.every(s => s.status === 'unknown');
 
   if (hasDown) {
     heroTitle = 'Interruzione<br><em>rilevata</em>';
@@ -983,11 +1125,9 @@ function renderAll(data, fromCache = false) {
     $('hero-notice').style.display = 'none';
   } else if (allUnknown) {
     heroTitle = 'In attesa dei<br><em>primi dati</em>';
-    iconColor = 'rgba(232,226,217,0.3)';
+    iconColor = 'rgba(237,232,224,0.3)';
     iconPath  = 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z';
-    $('live-dot').style.background = 'rgba(232,226,217,0.3)';
-    // ⚠ Non toccare MAI hero-subtitle (contiene <span id="last-check">).
-    //   Usiamo hero-notice separato per il messaggio aggiuntivo.
+    $('live-dot').style.background = 'rgba(237,232,224,0.3)';
     $('hero-notice').innerHTML = 'Upptime inizierà a raccogliere dati entro 5 minuti · <a href="https://github.com/luxhaven360/upptime" style="color:var(--gold)">Verifica il repo →</a>';
     $('hero-notice').style.display = 'block';
   } else {
@@ -998,10 +1138,8 @@ function renderAll(data, fromCache = false) {
   $('hero-icon').innerHTML = `<svg viewBox="0 0 24 24" style="fill:${iconColor}"><path d="${iconPath}"/></svg>`;
   $('hero-title').innerHTML = heroTitle;
 
-  // Stats — usa solo i servizi "core" (frontend + backend + infra) per l'uptime globale,
-  // esclude le dipendenze esterne che non sono sotto il nostro controllo
   const coreServices = services.filter(s => s.group !== 'deps');
-  const uptimes   = coreServices.filter(s => s.uptime && s.uptime !== '—').map(s => parseFloat(s.uptime));
+  const uptimes  = coreServices.filter(s => s.uptime && s.uptime !== '—').map(s => parseFloat(s.uptime));
   const avgUptime = uptimes.length ? (uptimes.reduce((a,b)=>a+b,0)/uptimes.length).toFixed(2) : '—';
   const responses = coreServices.filter(s => s.response && s.response !== '—').map(s => parseFloat(s.response));
   const avgResp   = responses.length ? Math.round(responses.reduce((a,b)=>a+b,0)/responses.length) : '—';
@@ -1009,17 +1147,17 @@ function renderAll(data, fromCache = false) {
   $('stat-uptime').textContent    = avgUptime !== '—' ? `${avgUptime}%` : '—';
   $('stat-response').textContent  = avgResp   !== '—' ? `${avgResp}` : '—';
   $('stat-incidents').textContent = data.incidentCount ?? '—';
-  $('last-check').textContent     = new Date().toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  $('avg-response-display').textContent = avgResp !== '—' ? `${avgResp}ms` : '—';
+  $('last-check').textContent     = new Date().toLocaleTimeString('it-IT', {
+    hour:'2-digit', minute:'2-digit', second:'2-digit'
+  });
+  $('avg-response-display').textContent = avgResp !== '—' ? `${avgResp}` : '—';
 
   const now = new Date();
-  const suffix = fromCache ? ' (cache)' : '';
-  $('last-updated').textContent = `Aggiornato: ${now.toLocaleTimeString('it-IT')}${suffix}`;
+  $('last-updated').textContent = `Aggiornato: ${now.toLocaleTimeString('it-IT')}${fromCache ? ' (cache)' : ''}`;
 
-  // Flash effect on real update
   if (!fromCache && lastData) {
     $('services-grid').classList.add('data-flash');
-    setTimeout(() => $('services-grid')?.classList.remove('data-flash'), 700);
+    setTimeout(() => $('services-grid')?.classList.remove('data-flash'), 550);
   }
   lastData = data;
 
@@ -1029,40 +1167,37 @@ function renderAll(data, fromCache = false) {
   renderIncidents(data.incidents || []);
 }
 
-// ─────────────────────────────────────────────────────
-//  RENDER BANNER
-// ─────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────
+   RENDER BANNER
+───────────────────────────────────────────────────── */
 function renderBanner(incident) {
   const banner = $('incident-banner');
   if (!incident) { banner.classList.remove('show'); return; }
-
   const isMaintenance = incident.title.toLowerCase().includes('manutenzione');
   banner.classList.toggle('maintenance', isMaintenance);
-  $('banner-title').textContent   = incident.title;
+  $('banner-title').textContent    = incident.title;
   $('banner-subtitle').textContent = `· Segnalato ${fmtDateShort(incident.startTime)}`;
   banner.classList.add('show');
 }
 
-// ─────────────────────────────────────────────────────
-//  RENDER SERVICES — con separatori di gruppo
-// ─────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────
+   RENDER SERVICES
+───────────────────────────────────────────────────── */
 const GROUP_LABELS = {
-  frontend: '🌐 Frontend',
-  backend:  '⚙ Servizi Backend',
-  infra:    '🏗 Infrastruttura & Database',
-  deps:     '🔗 Dipendenze Esterne',
+  frontend: 'Frontend',
+  backend:  'Servizi Backend',
+  infra:    'Infrastruttura & Database',
+  deps:     'Dipendenze Esterne',
 };
 
 function renderServices(services) {
   const grid = $('services-grid');
   $('services-count').textContent = `${services.length} servizi monitorati`;
 
-  const allUnknown = services.length > 0 && services.every(s => s.status === 'unknown');
   let lastGroup = null;
   const rows = [];
 
   services.forEach(svc => {
-    // Inserisci separatore quando cambia il gruppo
     const grp = svc.group || null;
     if (grp && grp !== lastGroup) {
       lastGroup = grp;
@@ -1073,18 +1208,17 @@ function renderServices(services) {
     const upPct = svc.uptime !== '—' ? parseFloat(svc.uptime) : null;
     const resp  = svc.response && svc.response !== '—' ? `${svc.response}ms` : '—';
 
-    // Mini sparkline — altezze determinate dallo status reale
-    const history = (svc.history || []).slice(-12);
-    const bars = history.length
-      ? history.map(h => {
-          const ht = h.status === 'up' ? 18 : h.status === 'degraded' ? 12 : h.status === 'down' ? 6 : 4;
-          const cls = h.status === 'up' ? 'status-up' : h.status === 'degraded' ? 'status-degraded' : 'status-down';
-          return `<div class="bar ${cls}" style="height:${ht}px"></div>`;
-        }).join('')
-      : '';
+    // Mini sparkline — last 14 days
+    const history = (svc.history || []).slice(-14);
+    const bars = history.map(h => {
+      const ht  = h.status === 'up' ? 18 : h.status === 'degraded' ? 12 : h.status === 'down' ? 6 : 4;
+      const bg  = h.status === 'up' ? 'var(--green)' : h.status === 'degraded' ? 'var(--yellow)'
+                : h.status === 'down' ? 'var(--red)' : 'rgba(255,255,255,0.09)';
+      return `<div class="bar" style="height:${ht}px;background:${bg}"></div>`;
+    }).join('');
 
     const badgeCls = svc.status === 'unknown' ? 'badge-unknown' : `badge-${svc.status}`;
-    const badgeLbl = { up:'Operativo', degraded:'Degradato', down:'Down', unknown:'In attesa' }[svc.status] || 'In attesa';
+    const badgeLbl = { up:'Operativo', degraded:'Degradato', down:'Down', unknown:'—' }[svc.status] || '—';
 
     rows.push(`
       <div class="service-row fade-in">
@@ -1093,7 +1227,7 @@ function renderServices(services) {
           <div class="service-name">${svc.name}</div>
         </div>
         <div class="service-bars">${bars}</div>
-        <div class="service-response"><strong>${resp}</strong>risposta</div>
+        <div class="service-response"><strong>${resp}</strong>latenza</div>
         <div class="service-uptime">
           <span class="uptime-value" style="color:${col}">${upPct !== null ? upPct.toFixed(1)+'%' : '—'}</span>
           <span class="uptime-label">uptime</span>
@@ -1105,86 +1239,84 @@ function renderServices(services) {
   grid.innerHTML = rows.join('');
 }
 
-// ─────────────────────────────────────────────────────
-//  RENDER TIMELINE
-// ─────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────
+   RENDER TIMELINE
+───────────────────────────────────────────────────── */
 function renderTimeline(services) {
   const wrap = $('timeline-wrap');
-  if (!services.length) { wrap.innerHTML = '<p style="color:var(--text-dim);font-size:0.75rem">Dati non disponibili</p>'; return; }
+  if (!services.length) {
+    wrap.innerHTML = '<p style="color:var(--text-muted);font-size:0.75rem">Dati non disponibili.</p>';
+    return;
+  }
 
   wrap.innerHTML = services.map(svc => {
-    // history è già un array di esattamente 90 giorni (index 0 = 89 giorni fa, index 89 = oggi)
-    const hist = svc.history || [];
-    // Se per qualche motivo non è ancora aggregato per giorni, fai il padding
+    const hist   = svc.history || [];
     const padded = hist.length === 90 ? hist
       : Array(90 - hist.length).fill({ status: 'unknown' }).concat(hist);
-
     const today = new Date();
+
     const bars = padded.map((h, i) => {
-      const col = statusColor(h.status);
+      const col     = statusColor(h.status);
       const barDate = new Date(today);
       barDate.setDate(barDate.getDate() - (89 - i));
-      const barDateStr = barDate.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
-      const tip = barDateStr;  // solo data, niente orario
+      const tip = barDate.toLocaleDateString('it-IT', {
+        day: '2-digit', month: 'short', year: 'numeric'
+      });
       return `<div class="timeline-bar" style="background:${col}" data-tip="${tip}"></div>`;
     }).join('');
 
-    const uptimeTxt = svc.uptime !== '—' ? `${svc.uptime}% uptime` : '';
+    const uptimeTxt = svc.uptime !== '—' ? `${svc.uptime}%` : '—';
     return `
       <div class="timeline-service">
         <div class="timeline-label">
-          <span>${svc.name}</span>
-          <span>${uptimeTxt}</span>
+          <span class="timeline-label-name">${svc.name}</span>
+          <span class="timeline-label-uptime">${uptimeTxt}</span>
         </div>
         <div class="timeline-bars">${bars}</div>
-        <div style="display:flex;justify-content:space-between;margin-top:4px">
-          <span style="font-size:0.58rem;color:var(--text-dim);letter-spacing:0.04em">← 90 giorni fa</span>
-          <span style="font-size:0.58rem;color:var(--text-dim);letter-spacing:0.04em">Oggi →</span>
+        <div class="timeline-dates">
+          <span class="timeline-date-label">← 90 giorni fa</span>
+          <span class="timeline-date-label">Oggi →</span>
         </div>
       </div>`;
   }).join('');
 }
 
-// ─────────────────────────────────────────────────────
-//  RENDER CHARTS
-// ─────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────
+   RENDER CHARTS
+───────────────────────────────────────────────────── */
 function renderCharts(services, incidents) {
-  // Genera labels per gli ultimi 30 giorni (25 feb → 25 mar se oggi è 25 mar)
-  const dates30 = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (29 - i));
-    return d;
+  const dates30  = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (29 - i)); return d;
   });
   const labels30 = dates30.map(d => d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit' }));
 
   const tooltipDefaults = {
-    backgroundColor: '#1a1a24',
-    borderColor:     'rgba(201,169,110,0.2)',
+    backgroundColor: '#131322',
+    borderColor:     'rgba(201,169,110,0.16)',
     borderWidth:     1,
     titleColor:      GOLD,
-    bodyColor:       'rgba(232,226,217,0.7)',
+    bodyColor:       'rgba(237,232,224,0.6)',
     padding:         10,
-    titleFont:       { family:"'Jost',sans-serif", size:11 },
-    bodyFont:        { family:"'Jost',sans-serif", size:10 },
+    titleFont: { family: "'Syne', sans-serif", size: 10, weight: '500' },
+    bodyFont:  { family: "'DM Mono', monospace", size: 10 },
   };
 
+  const tickStyle = {
+    color: 'rgba(237,232,224,0.22)',
+    font:  { size: 9, family: "'DM Mono', monospace" }
+  };
   const scalesXY = {
     x: {
       ticks: {
-        color: 'rgba(232,226,217,0.3)',
-        font: { size: 9 },
-        maxRotation: 0,
-        minRotation: 0,
-        autoSkip: false,
-        // Mostra: primo giorno, ogni 10° giorno, e l'ultimo (oggi)
+        ...tickStyle, maxRotation: 0, minRotation: 0, autoSkip: false,
         callback: (_, i) => (i === 0 || i === 9 || i === 19 || i === labels30.length - 1) ? labels30[i] : '',
       },
       grid: { color: DIM }
     },
-    y: { ticks: { color: 'rgba(232,226,217,0.3)', font: { size: 9 } }, grid: { color: DIM } },
+    y: { ticks: tickStyle, grid: { color: DIM } },
   };
 
-  // ── Uptime per giorno (dati reali da history Upptime) ──
-  // Ogni entry di history ha un campo 'date' (startTime del check)
+  // Uptime per giorno
   const uptimePerDay = dates30.map(day => {
     const dayStr = day.toISOString().split('T')[0];
     const perSvc = services
@@ -1194,14 +1326,11 @@ function renderCharts(services, incidents) {
         if (!entries.length) return null;
         const ups = entries.filter(e => e.status === 'up').length;
         return (ups / entries.length) * 100;
-      })
-      .filter(v => v !== null);
-    // Se non ci sono entry per quel giorno → null (nessun dato disponibile)
+      }).filter(v => v !== null);
     return perSvc.length ? perSvc.reduce((a,b)=>a+b,0)/perSvc.length : null;
   });
 
-  // ── Tempo di risposta per giorno (dati reali da history Upptime) ──
-  // NOTA: se Upptime non ha ancora raccolto dati, il grafico sarà vuoto (è corretto)
+  // Tempo di risposta per giorno
   const respPerDay = dates30.map(day => {
     const dayStr = day.toISOString().split('T')[0];
     const values = [];
@@ -1216,23 +1345,19 @@ function renderCharts(services, incidents) {
     return values.length ? Math.round(values.reduce((a,b)=>a+b,0)/values.length) : null;
   });
 
-  // Mostra la media attuale come ultima risposta disponibile
   const lastKnownResp = respPerDay.filter(v => v !== null).pop();
-  if (lastKnownResp) {
-    $('avg-response-display').textContent = `${lastKnownResp}ms`;
-  }
+  if (lastKnownResp) $('avg-response-display').textContent = `${lastKnownResp}`;
 
-  // ── Incidenti per giorno ──
+  // Incidenti per giorno
   const incidentsByDay = dates30.map(day => {
     const dayStr = day.toISOString().split('T')[0];
     return incidents.filter(inc =>
       inc.startTime && new Date(inc.startTime).toISOString().split('T')[0] === dayStr
     ).length;
   });
-  const totalDowntime = incidentsByDay.reduce((a,b)=>a+b,0);
-  $('downtime-events-display').textContent = totalDowntime;
+  $('downtime-events-display').textContent = incidentsByDay.reduce((a,b)=>a+b,0);
 
-  // ── Chart 1: Uptime ──
+  // Chart 1: Uptime
   if (chartUptime) chartUptime.destroy();
   chartUptime = new Chart($('chartUptime'), {
     type: 'line',
@@ -1240,10 +1365,8 @@ function renderCharts(services, incidents) {
       labels: labels30,
       datasets: [{
         data: uptimePerDay,
-        borderColor: GOLD,
-        backgroundColor: 'rgba(201,169,110,0.06)',
-        borderWidth: 1.5, pointRadius: 0, tension: 0.35, fill: true,
-        spanGaps: true, // collega i punti anche quando ci sono null
+        borderColor: GOLD, backgroundColor: 'rgba(201,169,110,0.04)',
+        borderWidth: 1.5, pointRadius: 0, tension: 0.35, fill: true, spanGaps: true,
       }],
     },
     options: {
@@ -1257,7 +1380,7 @@ function renderCharts(services, incidents) {
     },
   });
 
-  // ── Chart 2: Tempo di risposta (dati reali Upptime) ──
+  // Chart 2: Response time
   if (chartResponse) chartResponse.destroy();
   chartResponse = new Chart($('chartResponse'), {
     type: 'line',
@@ -1265,10 +1388,8 @@ function renderCharts(services, incidents) {
       labels: labels30,
       datasets: [{
         data: respPerDay,
-        borderColor: 'rgba(91,155,217,0.7)',
-        backgroundColor: 'rgba(91,155,217,0.06)',
-        borderWidth: 1, pointRadius: 0, tension: 0.3, fill: true,
-        spanGaps: true,
+        borderColor: 'rgba(91,155,217,0.62)', backgroundColor: 'rgba(91,155,217,0.04)',
+        borderWidth: 1, pointRadius: 0, tension: 0.3, fill: true, spanGaps: true,
       }],
     },
     options: {
@@ -1276,16 +1397,12 @@ function renderCharts(services, incidents) {
       plugins: { legend:{ display:false }, tooltip: tooltipDefaults },
       scales: {
         x: { ...scalesXY.x },
-        y: { ...scalesXY.y,
-             ticks:{ ...scalesXY.y.ticks, callback: v => v+'ms' },
-             // Quando non ci sono dati, mostra comunque l'asse
-             grace: '5%',
-           },
+        y: { ...scalesXY.y, ticks:{ ...scalesXY.y.ticks, callback: v => v+'ms' }, grace: '5%' },
       },
     },
   });
 
-  // ── Chart 3: Downtime events ──
+  // Chart 3: Downtime events
   if (chartDowntime) chartDowntime.destroy();
   chartDowntime = new Chart($('chartDowntime'), {
     type: 'bar',
@@ -1293,8 +1410,8 @@ function renderCharts(services, incidents) {
       labels: labels30,
       datasets: [{
         data: incidentsByDay,
-        backgroundColor: 'rgba(217,91,91,0.25)',
-        borderColor: RED, borderWidth: 1, borderRadius: 2,
+        backgroundColor: 'rgba(217,91,91,0.18)',
+        borderColor: RED, borderWidth: 1, borderRadius: 1,
       }],
     },
     options: {
@@ -1308,9 +1425,9 @@ function renderCharts(services, incidents) {
   });
 }
 
-// ─────────────────────────────────────────────────────
-//  RENDER INCIDENTS
-// ─────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────
+   RENDER INCIDENTS
+───────────────────────────────────────────────────── */
 function renderIncidents(incidents) {
   const list = $('incident-list');
   $('incidents-count').textContent = `${incidents.length} incidente${incidents.length !== 1 ? 'i' : ''} registrat${incidents.length !== 1 ? 'i' : 'o'}`;
@@ -1319,14 +1436,19 @@ function renderIncidents(incidents) {
     list.innerHTML = `
       <div class="incident-item severity-resolved">
         <div class="incident-header-row" style="cursor:default">
-          <p style="font-size:0.8rem;color:var(--text-dim)">Nessun incidente registrato di recente. ✓</p>
+          <p style="font-family:var(--font-ui);font-size:0.77rem;color:var(--text-sub)">
+            Nessun incidente registrato di recente. ✓
+          </p>
         </div>
       </div>`;
     return;
   }
 
   list.innerHTML = incidents.map((inc, idx) => {
-    const sev = inc.resolved ? 'severity-resolved' : (inc.severity === 'major' ? 'severity-major' : 'severity-minor');
+    const sev = inc.resolved
+      ? 'severity-resolved'
+      : (inc.severity === 'major' ? 'severity-major' : 'severity-minor');
+
     const statBadge = inc.resolved
       ? '<span class="incident-status-badge badge-resolved">Risolto</span>'
       : '<span class="incident-status-badge badge-active">Attivo</span>';
@@ -1354,7 +1476,7 @@ function renderIncidents(incidents) {
       </div>`;
   }).join('');
 
-  // Apri il primo incidente attivo automaticamente
+  // Apri il primo incidente attivo
   const firstActive = incidents.findIndex(i => !i.resolved);
   if (firstActive >= 0) toggleIncident(firstActive);
 }
@@ -1363,21 +1485,19 @@ function toggleIncident(idx) {
   document.getElementById(`incident-${idx}`)?.classList.toggle('open');
 }
 
-// ─────────────────────────────────────────────────────
-//  RENDER ERROR
-// ─────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────
+   RENDER ERROR
+───────────────────────────────────────────────────── */
 function renderError() {
   $('hero-title').innerHTML = 'Dati <em>non disponibili</em>';
   $('hero-subtitle').textContent = 'Impossibile recuperare i dati. Nuovo tentativo in corso…';
   $('live-dot').style.background = YELLOW;
 }
 
-// ─────────────────────────────────────────────────────
-//  START
-// ─────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────
+   START
+───────────────────────────────────────────────────── */
 loadData();
-
-// Anno copyright automatico
 document.getElementById('footer-year').textContent = new Date().getFullYear();
 </script>
 </body>
