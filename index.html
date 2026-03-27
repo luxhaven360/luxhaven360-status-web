@@ -1039,7 +1039,7 @@ async function fetchIncidents() {
       if (issue.state === 'closed' && issue.closed_at) {
         updates.push({
           time: issue.closed_at,
-          text: 'Il servizio è tornato operativo. L'incidente è stato risolto.',
+          text: "Il servizio è tornato operativo. L'incidente è stato risolto.",
           label: 'Resolved',
           type: 'resolved',
         });
