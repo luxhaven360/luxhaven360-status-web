@@ -1144,6 +1144,14 @@ function toLocalDateStr(d) {
   if (isNaN(dt.getTime())) return '';
   return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
 }
+// Upptime stores Unix ms timestamps in UTC. Use UTC date parts so that a check
+// at e.g. 23:30 UTC maps to the correct UTC calendar day, not the local next day.
+function tsToUTCDateStr(ts) {
+  const n = Number(ts);
+  const dt = (!isNaN(n) && /^\d+$/.test(String(ts).trim())) ? new Date(n) : new Date(ts);
+  if (isNaN(dt.getTime())) return '';
+  return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth()+1).padStart(2,'0') + '-' + String(dt.getUTCDate()).padStart(2,'0');
+}
 function fmtDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleString(t('locale'), { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
@@ -1312,7 +1320,7 @@ async function synthesizeFromGitHub() {
         const dayMap = {};
         for (const e of entries) {
           if (!e.startTime) continue;
-          const dayKey = toLocalDateStr(e.startTime);
+          const dayKey = tsToUTCDateStr(e.startTime);
           const st = (e.status === '200' || e.status === 'up') ? 'up' : e.status === 'degraded' ? 'degraded' : 'down';
           const rt = parseFloat(e.responseTime);
           if (!dayKey) continue; // skip entries where startTime couldn't be parsed
@@ -1325,18 +1333,20 @@ async function synthesizeFromGitHub() {
           delete d._rtList;
         });
 
-        const _today = new Date();
-        const todayKey = toLocalDateStr(_today);
+        // Use UTC dates throughout so Upptime UTC timestamps match our day buckets
+        const _todayUTC = new Date();
+        const todayKeyUTC = _todayUTC.getUTCFullYear() + '-' + String(_todayUTC.getUTCMonth()+1).padStart(2,'0') + '-' + String(_todayUTC.getUTCDate()).padStart(2,'0');
         history = Array.from({length:90}, (_,i) => {
-          const d = new Date(_today); d.setDate(d.getDate() - (89-i));
-          const key = toLocalDateStr(d);
+          const msOffset = (89-i) * 86400000;
+          const d = new Date(_todayUTC.getTime() - msOffset);
+          const key = d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
           return dayMap[key] || { date:key, status:'unknown', responseTime:null };
         });
         // Always override today's slot with the status from the actual latest YAML entry,
         // which is more reliable than the dayMap aggregation (which can be skewed by a
         // mis-parsed first block or by cross-midnight UTC entries).
         if (status !== 'unknown') {
-          history[89] = { date:todayKey, status, responseTime:response !== '—' ? parseFloat(response) : null };
+          history[89] = { date:todayKeyUTC, status, responseTime:response !== '—' ? parseFloat(response) : null };
         }
       }
     } catch {}
@@ -1358,8 +1368,9 @@ function parseYaml(text) {
     if (entry.startTime) entries.push(entry);
   }
   entries.sort((a, b) => {
-    const ta = toLocalDateStr(a.startTime), tb = toLocalDateStr(b.startTime);
-    return ta < tb ? -1 : ta > tb ? 1 : 0;
+    // Sort by full numeric timestamp, not just date string, so same-day entries
+    // are ordered correctly and entries[last] is truly the most recent.
+    return Number(a.startTime) - Number(b.startTime);
   });
   return entries;
 }
@@ -1614,8 +1625,10 @@ function renderCharts(services, incidents) {
   if (chartUptime) chartUptime.destroy();
   // Compute y-axis min: floor to nearest 5 below the lowest actual value (min 85)
   const knownUptimeVals = uptimeFilled.filter(v => v !== null);
+  // Cap at 99 so min < max (=100) even when all services are at 100%
+  // (Chart.js renders nothing when min === max)
   const uptimeMin = knownUptimeVals.length
-    ? Math.max(85, Math.floor(Math.min(...knownUptimeVals) / 5) * 5)
+    ? Math.min(99, Math.max(85, Math.floor(Math.min(...knownUptimeVals) / 5) * 5))
     : 90;
   chartUptime = new Chart($('chartUptime'), {
     type:'line',
