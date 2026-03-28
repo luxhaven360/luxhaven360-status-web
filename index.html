@@ -1362,14 +1362,6 @@ function parseYaml(text) {
     return ta < tb ? -1 : ta > tb ? 1 : 0;
   });
   return entries;
-};
-    for (const line of block.split('\n')) {
-      const m = line.match(/^\s*([\w]+):\s*(.+)/);
-      if (m) entry[m[1].trim()] = m[2].trim().replace(/^['"]|['"]$/g,'');
-    }
-    if (entry.startTime) entries.push(entry);
-  }
-  return entries;
 }
 
 /* ═══════════════════════════════════════════════════════════════
