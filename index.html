@@ -863,6 +863,14 @@ const LANG = {
     error_subtitle: 'Impossibile recuperare i dati. Nuovo tentativo in corso…',
     maintenance_kw: 'manutenzione',
     locale: 'it-IT',
+    svc_names: {
+      'Sito Principale':'Sito Principale', 'Portale Reports':'Portale Reports',
+      'API Core':'API Core', 'Servizi Community':'Servizi Community',
+      'Sistema Abbonamenti':'Sistema Abbonamenti', 'Access Sentinel':'Access Sentinel',
+      'CDN Assets':'CDN Assets', 'Reports API':'Reports API', 'Database':'Database',
+      'API Cambio Valuta':'API Cambio Valuta', 'Pagamenti Stripe':'Pagamenti Stripe',
+      'Geolocalizzazione':'Geolocalizzazione',
+    },
   },
   en: {
     nav_status: 'Status', nav_incidents: 'Incidents', nav_reports: 'Report',
@@ -900,6 +908,14 @@ const LANG = {
     error_subtitle: 'Unable to fetch data. Retrying…',
     maintenance_kw: 'maintenance',
     locale: 'en-GB',
+    svc_names: {
+      'Sito Principale':'Main Website', 'Portale Reports':'Reports Portal',
+      'API Core':'Core API', 'Servizi Community':'Community Services',
+      'Sistema Abbonamenti':'Subscription System', 'Access Sentinel':'Access Sentinel',
+      'CDN Assets':'CDN Assets', 'Reports API':'Reports API', 'Database':'Database',
+      'API Cambio Valuta':'Currency Exchange API', 'Pagamenti Stripe':'Stripe Payments',
+      'Geolocalizzazione':'Geolocation',
+    },
   },
   fr: {
     nav_status: 'Statut', nav_incidents: 'Incidents', nav_reports: 'Signaler',
@@ -937,6 +953,14 @@ const LANG = {
     error_subtitle: 'Impossible de récupérer les données. Nouvelle tentative…',
     maintenance_kw: 'maintenance',
     locale: 'fr-FR',
+    svc_names: {
+      'Sito Principale':'Site Principal', 'Portale Reports':'Portail Signalements',
+      'API Core':'API Principale', 'Servizi Community':'Services Communauté',
+      'Sistema Abbonamenti':'Système Abonnements', 'Access Sentinel':'Access Sentinel',
+      'CDN Assets':'CDN Assets', 'Reports API':'API Rapports', 'Database':'Base de données',
+      'API Cambio Valuta':'API Taux de change', 'Pagamenti Stripe':'Paiements Stripe',
+      'Geolocalizzazione':'Géolocalisation',
+    },
   },
   de: {
     nav_status: 'Status', nav_incidents: 'Vorfälle', nav_reports: 'Melden',
@@ -974,6 +998,14 @@ const LANG = {
     error_subtitle: 'Daten konnten nicht abgerufen werden. Neuer Versuch läuft…',
     maintenance_kw: 'wartung',
     locale: 'de-DE',
+    svc_names: {
+      'Sito Principale':'Hauptseite', 'Portale Reports':'Meldeportal',
+      'API Core':'Kern-API', 'Servizi Community':'Community-Dienste',
+      'Sistema Abbonamenti':'Abonnement-System', 'Access Sentinel':'Access Sentinel',
+      'CDN Assets':'CDN Assets', 'Reports API':'Meldungs-API', 'Database':'Datenbank',
+      'API Cambio Valuta':'Währungskurs-API', 'Pagamenti Stripe':'Stripe-Zahlungen',
+      'Geolocalizzazione':'Geolokalisierung',
+    },
   },
   es: {
     nav_status: 'Estado', nav_incidents: 'Incidentes', nav_reports: 'Reportar',
@@ -1011,6 +1043,14 @@ const LANG = {
     error_subtitle: 'No se pueden obtener los datos. Reintentando…',
     maintenance_kw: 'mantenimiento',
     locale: 'es-ES',
+    svc_names: {
+      'Sito Principale':'Sitio Principal', 'Portale Reports':'Portal de Reportes',
+      'API Core':'API Principal', 'Servizi Community':'Servicios Comunidad',
+      'Sistema Abbonamenti':'Sistema de Suscripciones', 'Access Sentinel':'Access Sentinel',
+      'CDN Assets':'CDN Assets', 'Reports API':'API de Reportes', 'Database':'Base de datos',
+      'API Cambio Valuta':'API Tipo de cambio', 'Pagamenti Stripe':'Pagos Stripe',
+      'Geolocalizzazione':'Geolocalización',
+    },
   },
 };
 
@@ -1092,7 +1132,16 @@ function statusColor(s) {
   return 'rgba(255,255,255,0.09)';
 }
 function toLocalDateStr(d) {
-  const dt = (d instanceof Date) ? d : new Date(d);
+  let dt;
+  if (d instanceof Date) {
+    dt = d;
+  } else {
+    // Upptime stores startTime as Unix ms timestamp strings (e.g. "1743026400000")
+    // new Date("1743026400000") → Invalid Date; must cast to Number first
+    const n = Number(d);
+    dt = (!isNaN(n) && /^\d+$/.test(String(d).trim())) ? new Date(n) : new Date(d);
+  }
+  if (isNaN(dt.getTime())) return '';
   return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
 }
 function fmtDate(iso) {
@@ -1427,12 +1476,14 @@ function renderServices(services) {
     const badgeCls = svc.status === 'unknown' ? 'badge-unknown' : `badge-${svc.status}`;
     const badgeMap = { up: t('badge_up'), degraded: t('badge_degraded'), down: t('badge_down'), unknown: t('badge_unknown') };
     const badgeLbl = badgeMap[svc.status] || '—';
+    // Translate service display name (svc.name is always the Italian key used for slug lookups)
+    const svcDisplayName = (LANG[currentLang]?.svc_names?.[svc.name]) || svc.name;
 
     rows.push(`
       <div class="service-row fade-in">
         <div class="service-indicator" style="background:${col}"></div>
         <div class="service-info">
-          <div class="service-name">${svc.name}</div>
+          <div class="service-name">${svcDisplayName}</div>
         </div>
         <div class="service-bars">${bars}</div>
         <div class="service-response"><strong>${resp}</strong>${t('svc_latency')}</div>
@@ -1469,10 +1520,11 @@ function renderTimeline(services) {
     }).join('');
 
     const uptimeTxt = svc.uptime !== '—' ? `${svc.uptime}%` : '—';
+    const svcDisplayName = (LANG[currentLang]?.svc_names?.[svc.name]) || svc.name;
     return `
       <div class="timeline-service">
         <div class="timeline-label">
-          <span class="timeline-label-name">${svc.name}</span>
+          <span class="timeline-label-name">${svcDisplayName}</span>
           <span class="timeline-label-uptime">${uptimeTxt}</span>
         </div>
         <div class="timeline-bars">${bars}</div>
@@ -1502,21 +1554,30 @@ function renderCharts(services, incidents) {
   };
 
   const uptimePerDay = dates30.map(day => {
-    const dayStr = day.toISOString().split('T')[0];
+    const dayStr = toLocalDateStr(day); // local date — matches history keys
     const perSvc = services.filter(s => s.history?.length).map(s => {
-      const entries = s.history.filter(h => h.date && new Date(h.date).toISOString().split('T')[0] === dayStr);
+      const entries = s.history.filter(h => h.date === dayStr);
       if (!entries.length) return null;
       return (entries.filter(e => e.status === 'up').length / entries.length) * 100;
     }).filter(v => v !== null);
     return perSvc.length ? perSvc.reduce((a,b)=>a+b,0)/perSvc.length : null;
   });
 
+  // Forward-fill uptime gaps: once monitoring started, missing days → assume 100%
+  // This prevents isolated spikes when data is sparse (new repo)
+  const firstDataIdx = uptimePerDay.findIndex(v => v !== null);
+  const uptimeFilled = uptimePerDay.map((v, i) => {
+    if (v !== null) return v;
+    if (firstDataIdx >= 0 && i >= firstDataIdx) return 100;
+    return null;
+  });
+
   const respPerDay = dates30.map(day => {
-    const dayStr = day.toISOString().split('T')[0];
+    const dayStr = toLocalDateStr(day); // local date — matches history keys
     const values = [];
     services.forEach(svc => {
       (svc.history||[]).forEach(h => {
-        if (h.date && new Date(h.date).toISOString().split('T')[0] === dayStr) {
+        if (h.date === dayStr) {
           const rt = parseFloat(h.responseTime);
           if (!isNaN(rt) && rt > 0) values.push(rt);
         }
@@ -1529,8 +1590,8 @@ function renderCharts(services, incidents) {
   if (lastKnownResp) $('avg-response-display').textContent = `${lastKnownResp}`;
 
   const incidentsByDay = dates30.map(day => {
-    const dayStr = day.toISOString().split('T')[0];
-    return incidents.filter(inc => inc.startTime && new Date(inc.startTime).toISOString().split('T')[0] === dayStr).length;
+    const dayStr = toLocalDateStr(day);
+    return incidents.filter(inc => inc.startTime && toLocalDateStr(inc.startTime) === dayStr).length;
   });
   $('downtime-events-display').textContent = incidentsByDay.reduce((a,b)=>a+b,0);
 
@@ -1542,10 +1603,15 @@ function renderCharts(services, incidents) {
   const cds = $('chart-downtime-sub');   if (cds) cds.textContent = t('chart_downtime_sub');
 
   if (chartUptime) chartUptime.destroy();
+  // Compute y-axis min: floor to nearest 5 below the lowest actual value (min 85)
+  const knownUptimeVals = uptimeFilled.filter(v => v !== null);
+  const uptimeMin = knownUptimeVals.length
+    ? Math.max(85, Math.floor(Math.min(...knownUptimeVals) / 5) * 5)
+    : 90;
   chartUptime = new Chart($('chartUptime'), {
     type:'line',
-    data:{ labels:labels30, datasets:[{ data:uptimePerDay, borderColor:GOLD, backgroundColor:'rgba(201,169,110,0.04)', borderWidth:1.5, pointRadius:0, tension:0.35, fill:true, spanGaps:true }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:tooltipDefaults}, scales:{ x:scalesXY.x, y:{...scalesXY.y, min:90, max:100, ticks:{...scalesXY.y.ticks, callback:v=>v+'%'}} } },
+    data:{ labels:labels30, datasets:[{ data:uptimeFilled, borderColor:GOLD, backgroundColor:'rgba(201,169,110,0.07)', borderWidth:1.5, pointRadius:0, tension:0.3, fill:true, spanGaps:true }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:tooltipDefaults}, scales:{ x:scalesXY.x, y:{...scalesXY.y, min:uptimeMin, max:100, ticks:{...scalesXY.y.ticks, callback:v=>v+'%'}} } },
   });
 
   if (chartResponse) chartResponse.destroy();
