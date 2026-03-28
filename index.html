@@ -796,12 +796,13 @@
 const CONFIG = {
   githubOwner:   'luxhaven360',
   githubRepo:    'upptime',
-  refreshMs:     60_000,
-  fastRefreshMs: 20_000,
+  refreshMs:        300_000,  // 5 minuti — status Upptime cambia raramente
+  fastRefreshMs:     20_000,  // 20 s — solo dopo un errore
+  incidentsMs:      300_000,  // 5 minuti — sincronizzato con il Cron del Worker
   reportsUrl:    'https://reports.luxhaven360.com',
   reportsApiUrl: 'https://reports-api.luxhaven360.com',
   cacheKey:      'lh360_status_v6',
-  cacheTTL:      55_000,
+  cacheTTL:      295_000,     // ~5 min — allineato a refreshMs
 };
 // ══════════════════════════════════════
 
@@ -1246,11 +1247,27 @@ async function loadData() {
 }
 
 async function fetchIncidents() {
+  // Controlla sessionStorage prima di chiamare il Worker — risparmia richieste
+  // tra navigazioni successive nella stessa sessione browser.
+  const SK = 'lh360_incidents_v1';
   try {
-    const r = await fetch(`${CONFIG.reportsApiUrl}/incidents`, { cache: 'no-store' });
+    const raw = sessionStorage.getItem(SK);
+    if (raw) {
+      const { incidents, ts } = JSON.parse(raw);
+      if (Date.now() - ts < CONFIG.incidentsMs) return incidents;
+    }
+  } catch {}
+
+  try {
+    // Niente cache: 'no-store' — lascia che Cloudflare edge cache risponda
+    // senza invocare il Worker per ogni utente.
+    const r = await fetch(`${CONFIG.reportsApiUrl}/incidents`);
     if (!r.ok) return [];
     const data = await r.json();
-    return Array.isArray(data.incidents) ? data.incidents : [];
+    const incidents = Array.isArray(data.incidents) ? data.incidents : [];
+    // Salva in sessionStorage per riutilizzarli entro incidentsMs
+    try { sessionStorage.setItem(SK, JSON.stringify({ incidents, ts: Date.now() })); } catch {}
+    return incidents;
   } catch { return []; }
 }
 
