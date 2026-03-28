@@ -647,7 +647,7 @@
     <h1 class="hero-title" id="hero-title">—</h1>
 
     <p class="hero-subtitle" id="hero-subtitle">
-      <span id="hero-subtitle-text">Aggiornato ogni 60 secondi · Ultimo controllo:</span>
+      <span id="hero-subtitle-text">Aggiornato ogni 5 minuti · Ultimo controllo:</span>
       <span id="last-check">—</span>
     </p>
     <p class="hero-subtitle" id="hero-notice" style="display:none;margin-top:0.3rem"></p>
@@ -836,7 +836,7 @@ const LANG = {
     hero_degraded: 'Prestazioni<br><em>degradate</em>',
     hero_waiting: 'In attesa dei<br><em>primi dati</em>',
     hero_notice_waiting: 'Upptime inizierà a raccogliere dati entro 5 minuti · <a href="https://github.com/luxhaven360/upptime" style="color:var(--gold)">Verifica il repo →</a>',
-    hero_subtitle: 'Aggiornato ogni 60 secondi\u2009·\u2009Ultimo controllo:',
+    hero_subtitle: 'Aggiornato ogni 5 minuti\u2009·\u2009Ultimo controllo:',
     stat_uptime: 'Uptime 90gg', stat_incidents: 'Incidenti 30gg', stat_response: 'Risposta (ms)',
     refresh_prefix: 'Aggiornamento tra\u00a0', refresh_suffix: '\u2009s',
     last_updated: 'Aggiornato:', cache_sfx: '(cache)', loading: 'Caricamento…',
@@ -881,7 +881,7 @@ const LANG = {
     hero_degraded: 'Degraded<br><em>performance</em>',
     hero_waiting: 'Waiting for<br><em>first data</em>',
     hero_notice_waiting: 'Upptime will start collecting data within 5 minutes · <a href="https://github.com/luxhaven360/upptime" style="color:var(--gold)">Check the repo →</a>',
-    hero_subtitle: 'Updated every 60 seconds\u2009·\u2009Last check:',
+    hero_subtitle: 'Updated every 5 minutes\u2009·\u2009Last check:',
     stat_uptime: '90d Uptime', stat_incidents: 'Incidents 30d', stat_response: 'Response (ms)',
     refresh_prefix: 'Refresh in\u00a0', refresh_suffix: '\u2009s',
     last_updated: 'Updated:', cache_sfx: '(cache)', loading: 'Loading…',
@@ -926,7 +926,7 @@ const LANG = {
     hero_degraded: 'Performances<br><em>dégradées</em>',
     hero_waiting: 'En attente des<br><em>premières données</em>',
     hero_notice_waiting: 'Upptime commencera à collecter des données dans 5 minutes · <a href="https://github.com/luxhaven360/upptime" style="color:var(--gold)">Vérifier le dépôt →</a>',
-    hero_subtitle: 'Mis à jour toutes les 60 s\u2009·\u2009Dernier contrôle\u00a0:',
+    hero_subtitle: 'Mis à jour toutes les 5 min\u2009·\u2009Dernier contrôle\u00a0:',
     stat_uptime: 'Uptime 90j', stat_incidents: 'Incidents 30j', stat_response: 'Réponse (ms)',
     refresh_prefix: 'Mise à jour dans\u00a0', refresh_suffix: '\u2009s',
     last_updated: 'Mis à jour\u00a0:', cache_sfx: '(cache)', loading: 'Chargement…',
@@ -971,7 +971,7 @@ const LANG = {
     hero_degraded: 'Eingeschränkte<br><em>Leistung</em>',
     hero_waiting: 'Warten auf<br><em>erste Daten</em>',
     hero_notice_waiting: 'Upptime beginnt in 5 Minuten mit der Datenerfassung · <a href="https://github.com/luxhaven360/upptime" style="color:var(--gold)">Repository prüfen →</a>',
-    hero_subtitle: 'Aktualisierung alle 60 Sekunden\u2009·\u2009Letzte Prüfung:',
+    hero_subtitle: 'Aktualisierung alle 5 Minuten\u2009·\u2009Letzte Prüfung:',
     stat_uptime: 'Uptime 90T', stat_incidents: 'Vorfälle 30T', stat_response: 'Antwort (ms)',
     refresh_prefix: 'Aktualisierung in\u00a0', refresh_suffix: '\u2009s',
     last_updated: 'Aktualisiert:', cache_sfx: '(Cache)', loading: 'Laden…',
@@ -1016,7 +1016,7 @@ const LANG = {
     hero_degraded: 'Rendimiento<br><em>degradado</em>',
     hero_waiting: 'Esperando los<br><em>primeros datos</em>',
     hero_notice_waiting: 'Upptime comenzará a recopilar datos en 5 minutos · <a href="https://github.com/luxhaven360/upptime" style="color:var(--gold)">Verificar repositorio →</a>',
-    hero_subtitle: 'Actualizado cada 60 segundos\u2009·\u2009Última verificación:',
+    hero_subtitle: 'Actualizado cada 5 minutos\u2009·\u2009Última verificación:',
     stat_uptime: 'Uptime 90d', stat_incidents: 'Incidentes 30d', stat_response: 'Respuesta (ms)',
     refresh_prefix: 'Actualización en\u00a0', refresh_suffix: '\u2009s',
     last_updated: 'Actualizado:', cache_sfx: '(caché)', loading: 'Cargando…',
@@ -1330,8 +1330,17 @@ async function synthesizeFromGitHub() {
           status   = (latest.status === '200' || latest.status === 'up') ? 'up' : latest.status === 'degraded' ? 'degraded' : 'down';
           response = latest.responseTime || '—';
         }
-        const ups = entries.filter(e => e.status === '200' || e.status === 'up').length;
-        uptime = entries.length ? ((ups / entries.length) * 100).toFixed(2) : '—';
+        // Bound uptime to the last 90 days so the label "90gg/90d/90j/90T/90d" is accurate.
+        // Upptime YAMLs can accumulate months of entries — without this boundary,
+        // older outages (or old degraded periods) would dilute the displayed figure.
+        const cutoff90 = Date.now() - 90 * 86400_000;
+        const entries90 = entries.filter(e => {
+          const n = Number(e.startTime);
+          return !isNaN(n) && n >= cutoff90;
+        });
+        const pool = entries90.length ? entries90 : entries; // fallback: use all if <90d of data
+        const ups = pool.filter(e => e.status === '200' || e.status === 'up').length;
+        uptime = pool.length ? ((ups / pool.length) * 100).toFixed(2) : '—';
 
         const RANK = { down:2, degraded:1, up:0 };
         const dayMap = {};
@@ -1439,14 +1448,35 @@ function renderAll(data, fromCache = false) {
   const coreServices = services.filter(s => s.group !== 'deps');
   const uptimes  = coreServices.filter(s => s.uptime && s.uptime !== '—').map(s => parseFloat(s.uptime));
   const avgUptime = uptimes.length ? (uptimes.reduce((a,b)=>a+b,0)/uptimes.length).toFixed(2) : '—';
-  const responses = coreServices.filter(s => s.response && s.response !== '—').map(s => parseFloat(s.response));
-  const avgResp   = responses.length ? Math.round(responses.reduce((a,b)=>a+b,0)/responses.length) : '—';
+
+  // Response time: compute the daily-average of the most recent day that has data
+  // across ALL services, using the same logic as renderCharts — so hero and chart
+  // header always show the exact same value and reference the same time window.
+  const today0 = new Date(); today0.setHours(0,0,0,0);
+  let heroResp = '—';
+  for (let daysBack = 0; daysBack < 30; daysBack++) {
+    const d    = new Date(today0.getTime() - daysBack * 86400_000);
+    const dStr = toLocalDateStr(d);
+    const vals = [];
+    services.forEach(svc => {
+      (svc.history || []).forEach(h => {
+        if (h.date === dStr && h.status !== 'unknown') {
+          const rt = parseFloat(h.responseTime);
+          if (!isNaN(rt) && rt > 0) vals.push(rt);
+        }
+      });
+    });
+    if (vals.length) {
+      heroResp = Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+      break;
+    }
+  }
 
   $('stat-uptime').textContent    = avgUptime !== '—' ? `${avgUptime}%` : '—';
-  $('stat-response').textContent  = avgResp   !== '—' ? `${avgResp}` : '—';
+  $('stat-response').textContent  = heroResp  !== '—' ? `${heroResp}` : '—';
   $('stat-incidents').textContent = data.incidentCount ?? '—';
   $('last-check').textContent     = new Date().toLocaleTimeString(t('locale'), { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  $('avg-response-display').textContent = avgResp !== '—' ? `${avgResp}` : '—';
+  $('avg-response-display').textContent = heroResp !== '—' ? `${heroResp}` : '—';
 
   const now = new Date();
   const cacheNote = fromCache ? ` ${t('cache_sfx')}` : '';
