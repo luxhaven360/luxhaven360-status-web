@@ -1315,6 +1315,7 @@ async function synthesizeFromGitHub() {
           const dayKey = toLocalDateStr(e.startTime);
           const st = (e.status === '200' || e.status === 'up') ? 'up' : e.status === 'degraded' ? 'degraded' : 'down';
           const rt = parseFloat(e.responseTime);
+          if (!dayKey) continue; // skip entries where startTime couldn't be parsed
           if (!dayMap[dayKey]) dayMap[dayKey] = { date:dayKey, status:st, _rtList:[] };
           else if (RANK[st] > RANK[dayMap[dayKey].status]) dayMap[dayKey].status = st;
           if (!isNaN(rt) && rt > 0) dayMap[dayKey]._rtList.push(rt);
@@ -1331,7 +1332,10 @@ async function synthesizeFromGitHub() {
           const key = toLocalDateStr(d);
           return dayMap[key] || { date:key, status:'unknown', responseTime:null };
         });
-        if (status !== 'unknown' && (!dayMap[todayKey] || dayMap[todayKey].status === 'unknown')) {
+        // Always override today's slot with the status from the actual latest YAML entry,
+        // which is more reliable than the dayMap aggregation (which can be skewed by a
+        // mis-parsed first block or by cross-midnight UTC entries).
+        if (status !== 'unknown') {
           history[89] = { date:todayKey, status, responseTime:response !== '—' ? parseFloat(response) : null };
         }
       }
@@ -1344,9 +1348,21 @@ async function synthesizeFromGitHub() {
 
 function parseYaml(text) {
   const entries = [];
-  const blocks  = text.split(/\n- /).filter(Boolean);
+  const blocks = text.split(/(?:^|\n)- /).filter(Boolean);
   for (const block of blocks) {
     const entry = {};
+    for (const line of block.split('\n')) {
+      const m = line.match(/^\s*([\w]+):\s*(.+)/);
+      if (m) entry[m[1].trim()] = m[2].trim().replace(/^['"]|['"]$/g,'');
+    }
+    if (entry.startTime) entries.push(entry);
+  }
+  entries.sort((a, b) => {
+    const ta = toLocalDateStr(a.startTime), tb = toLocalDateStr(b.startTime);
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+  return entries;
+};
     for (const line of block.split('\n')) {
       const m = line.match(/^\s*([\w]+):\s*(.+)/);
       if (m) entry[m[1].trim()] = m[2].trim().replace(/^['"]|['"]$/g,'');
@@ -1556,7 +1572,8 @@ function renderCharts(services, incidents) {
   const uptimePerDay = dates30.map(day => {
     const dayStr = toLocalDateStr(day); // local date — matches history keys
     const perSvc = services.filter(s => s.history?.length).map(s => {
-      const entries = s.history.filter(h => h.date === dayStr);
+      // Exclude 'unknown' days (no monitoring data) so they yield null, not 0%
+      const entries = s.history.filter(h => h.date === dayStr && h.status !== 'unknown');
       if (!entries.length) return null;
       return (entries.filter(e => e.status === 'up').length / entries.length) * 100;
     }).filter(v => v !== null);
@@ -1577,7 +1594,7 @@ function renderCharts(services, incidents) {
     const values = [];
     services.forEach(svc => {
       (svc.history||[]).forEach(h => {
-        if (h.date === dayStr) {
+        if (h.date === dayStr && h.status !== 'unknown') {
           const rt = parseFloat(h.responseTime);
           if (!isNaN(rt) && rt > 0) values.push(rt);
         }
