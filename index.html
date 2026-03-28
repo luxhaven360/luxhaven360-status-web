@@ -1623,12 +1623,14 @@ function renderCharts(services, incidents) {
   const cds = $('chart-downtime-sub');   if (cds) cds.textContent = t('chart_downtime_sub');
 
   if (chartUptime) chartUptime.destroy();
-  // Compute y-axis min: floor to nearest 5 below the lowest actual value (min 85)
+  // Compute y-axis min: fully dynamic — floors to the nearest 5% below the actual
+  // minimum value, with a small 2% breathing room so the curve never sits flush
+  // against the bottom edge. Capped at 99 so min < max (=100) when all days are
+  // at 100% (Chart.js renders nothing when min === max). No artificial lower bound:
+  // if uptime drops to 75% or 30% the axis adapts and shows the real picture.
   const knownUptimeVals = uptimeFilled.filter(v => v !== null);
-  // Cap at 99 so min < max (=100) even when all services are at 100%
-  // (Chart.js renders nothing when min === max)
   const uptimeMin = knownUptimeVals.length
-    ? Math.min(99, Math.max(85, Math.floor(Math.min(...knownUptimeVals) / 5) * 5))
+    ? Math.min(99, Math.max(0, Math.floor((Math.min(...knownUptimeVals) - 2) / 5) * 5))
     : 90;
   chartUptime = new Chart($('chartUptime'), {
     type:'line',
