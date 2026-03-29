@@ -1536,7 +1536,13 @@ function renderServices(services) {
     const upPct = svc.uptime !== '—' ? parseFloat(svc.uptime) : null;
     const resp  = svc.response && svc.response !== '—' ? `${svc.response}ms` : '—';
 
-    const history = (svc.history || []).slice(-14);
+    const histRaw = (svc.history || []).slice(-14);
+    // Forward-fill: same fix as renderTimeline — days after monitoring started
+    // with no YAML entry are assumed 'up' instead of shown as 'unknown' (invisible).
+    const firstKnownSvc = histRaw.findIndex(h => h.status !== 'unknown');
+    const history = firstKnownSvc < 0 ? histRaw : histRaw.map((h, i) =>
+      (i > firstKnownSvc && h.status === 'unknown') ? { ...h, status: 'up' } : h
+    );
     const bars = history.map(h => {
       const ht  = h.status === 'up' ? 18 : h.status === 'degraded' ? 12 : h.status === 'down' ? 6 : 4;
       const bg  = h.status === 'up' ? 'var(--green)' : h.status === 'degraded' ? 'var(--yellow)' : h.status === 'down' ? 'var(--red)' : 'rgba(255,255,255,0.09)';
