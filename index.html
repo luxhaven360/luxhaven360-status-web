@@ -1579,9 +1579,19 @@ function renderTimeline(services) {
   wrap.innerHTML = services.map(svc => {
     const hist   = svc.history || [];
     const padded = hist.length === 90 ? hist : Array(90 - hist.length).fill({ status:'unknown' }).concat(hist);
+
+    // Forward-fill: once monitoring started, days with no data → assume 'up'.
+    // Same logic used in renderCharts — prevents "ghost gaps" on always-up services
+    // where Upptime only writes one YAML entry per state change (not one per check).
+    // Without this, intermediate days lose their bar as soon as they stop being "today".
+    const firstKnown = padded.findIndex(h => h.status !== 'unknown');
+    const filled = firstKnown < 0 ? padded : padded.map((h, i) =>
+      (i > firstKnown && h.status === 'unknown') ? { ...h, status: 'up' } : h
+    );
+
     const today  = new Date();
 
-    const bars = padded.map((h, i) => {
+    const bars = filled.map((h, i) => {
       const col     = statusColor(h.status);
       const barDate = new Date(today);
       barDate.setDate(barDate.getDate() - (89-i));
